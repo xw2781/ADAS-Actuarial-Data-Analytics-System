@@ -42,8 +42,9 @@ output/
 cache/
 temp/
 
-# -------- ADAS Agent runtime --------
+# -------- ADAS runtime --------
 backend/src/agent/instances/
+backend/src/master/instances/
 
 # -------- OS / Editor --------
 .DS_Store
