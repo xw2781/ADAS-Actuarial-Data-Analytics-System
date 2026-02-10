@@ -34,7 +34,10 @@ for %%f in (main.py build_exe.py command.txt requirements.txt) do (
 echo Sync complete.
 echo.
 
-:: ---- Git push ----
+:: ---- Git pull then push ----
+git pull origin main --no-rebase
+if errorlevel 1 goto :error
+
 git add -A
 if errorlevel 1 goto :error
 
