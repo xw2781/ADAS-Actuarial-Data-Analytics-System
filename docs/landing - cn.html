@@ -1,0 +1,5478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArcRho - 精算数据与分析</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #a5b4fc;
+            --secondary: #0f172a;
+            --accent: #f59e0b;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--gray-800);
+            line-height: 1.6;
+            background: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes countUp {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes drawLine {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink {
+            0%, 50% { border-color: var(--primary); }
+            51%, 100% { border-color: transparent; }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1) rotate(180deg); }
+        }
+
+        @keyframes drawChart {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+
+        @keyframes aiPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 0 15px rgba(99, 102, 241, 0); }
+        }
+
+        @keyframes dotBounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-8px); }
+        }
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .animate-delay-1 { transition-delay: 0.1s; }
+        .animate-delay-2 { transition-delay: 0.2s; }
+        .animate-delay-3 { transition-delay: 0.3s; }
+        .animate-delay-4 { transition-delay: 0.4s; }
+        .animate-delay-5 { transition-delay: 0.5s; }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.1);
+            z-index: 1000;
+            padding: 0 24px;
+            transition: all 0.3s ease;
+        }
+
+        nav.scrolled {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 72px;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .logo-icon svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+        }
+
+        .logo-icon rect {
+            fill: currentColor;
+        }
+
+        .logo:hover .logo-icon {
+            transform: rotate(-5deg) scale(1.1);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 36px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 24px 100px;
+            background: linear-gradient(180deg, #f8faff 0%, #fff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Floating shapes */
+        .floating-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.5;
+        }
+
+        .shape-1 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            top: 10%;
+            right: -100px;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .shape-2 {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1));
+            bottom: 20%;
+            left: -50px;
+            animation: float 6s ease-in-out infinite reverse;
+        }
+
+        .shape-3 {
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(74, 222, 128, 0.1));
+            top: 40%;
+            left: 10%;
+            animation: float 7s ease-in-out infinite;
+        }
+
+        .hero-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content {
+            animation: fadeInLeft 0.8s ease forwards;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--primary);
+            margin-bottom: 24px;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+            line-height: 1.1;
+            margin-bottom: 24px;
+        }
+
+        .hero-content h1 span {
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% 200%;
+            animation: gradientMove 3s ease infinite;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 36px;
+            max-width: 500px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary svg {
+            transition: transform 0.3s ease;
+        }
+
+        .btn-primary:hover svg {
+            transform: translateX(4px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: 2px solid var(--gray-200);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .hero-visual {
+            animation: fadeInRight 0.8s ease forwards;
+            animation-delay: 0.2s;
+            opacity: 0;
+        }
+
+        .hero-image {
+            background: linear-gradient(135deg, var(--gray-800), var(--gray-900));
+            border-radius: 20px;
+            padding: 3px;
+            box-shadow:
+                0 25px 50px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .app-preview {
+            background: #1a1a2e;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .app-titlebar {
+            background: linear-gradient(180deg, #2d2d44, #252538);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .app-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .app-dots span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+
+        .app-dots span:hover {
+            transform: scale(1.2);
+        }
+
+        .app-dots span:first-child { background: #ff5f57; }
+        .app-dots span:nth-child(2) { background: #ffbd2e; }
+        .app-dots span:last-child { background: #28ca42; }
+
+        .app-title {
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .app-content {
+            padding: 20px;
+            background: linear-gradient(180deg, #1e1e32, #16162a);
+            min-height: 320px;
+        }
+
+        /* Animated Triangle Chart */
+        .triangle-chart {
+            display: flex;
+            gap: 20px;
+        }
+
+        .triangle-table {
+            flex: 1;
+        }
+
+        .triangle-preview {
+            display: grid;
+            gap: 3px;
+            font-size: 11px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .triangle-row {
+            display: flex;
+            gap: 3px;
+        }
+
+        .triangle-cell {
+            background: rgba(255,255,255,0.03);
+            padding: 8px 10px;
+            border-radius: 4px;
+            min-width: 58px;
+            text-align: right;
+            color: rgba(255,255,255,0.7);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .triangle-cell:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .triangle-cell.header {
+            background: rgba(99, 102, 241, 0.15);
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .triangle-cell.highlight {
+            background: rgba(99, 102, 241, 0.25);
+            border-color: var(--primary);
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .triangle-cell.projected {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c4b5fd;
+            font-style: italic;
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        /* Mini Chart */
+        .mini-chart {
+            width: 120px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+
+        .chart-bar-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 150px;
+            padding: 10px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+            border-radius: 4px 4px 0 0;
+            transition: height 1s ease;
+            position: relative;
+        }
+
+        .chart-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, rgba(255,255,255,0.2), transparent);
+            border-radius: 4px 4px 0 0;
+        }
+
+        .chart-bar:nth-child(1) { height: 40%; animation: growBar 1s ease forwards; animation-delay: 0.1s; }
+        .chart-bar:nth-child(2) { height: 60%; animation: growBar 1s ease forwards; animation-delay: 0.2s; }
+        .chart-bar:nth-child(3) { height: 75%; animation: growBar 1s ease forwards; animation-delay: 0.3s; }
+        .chart-bar:nth-child(4) { height: 65%; animation: growBar 1s ease forwards; animation-delay: 0.4s; }
+        .chart-bar:nth-child(5) { height: 85%; animation: growBar 1s ease forwards; animation-delay: 0.5s; }
+        .chart-bar:nth-child(6) { height: 95%; background: linear-gradient(180deg, #a855f7, #7c3aed); animation: growBar 1s ease forwards; animation-delay: 0.6s; }
+
+        @keyframes growBar {
+            from { height: 0; }
+        }
+
+        .chart-label {
+            text-align: center;
+            color: rgba(255,255,255,0.4);
+            font-size: 10px;
+            margin-top: 8px;
+        }
+
+        /* 功能 Section */
+        .features {
+            padding: 120px 24px;
+            background: white;
+            position: relative;
+        }
+
+        .features::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1px;
+            height: 80px;
+            background: linear-gradient(180deg, var(--gray-200), transparent);
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .section-label {
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            display: inline-block;
+        }
+
+        .section-title {
+            font-size: 2.75rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 20px;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--gray-500);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        .feature-card {
+            padding: 36px;
+            border-radius: 20px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            background: white;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), #a855f7);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-card:hover {
+            border-color: transparent;
+            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.15);
+            transform: translateY(-8px);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 24px;
+            transition: transform 0.4s ease;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: var(--gray-600);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        /* AI Visualization Section */
+        .ai-viz {
+            padding: 120px 24px;
+            background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 45%, #eef2f7 100%);
+            position: relative;
+            overflow: hidden;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .ai-viz::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 18% 22%, rgba(30, 64, 175, 0.1) 0%, transparent 44%),
+                radial-gradient(circle at 82% 26%, rgba(14, 116, 144, 0.08) 0%, transparent 42%),
+                radial-gradient(circle at 64% 82%, rgba(15, 23, 42, 0.05) 0%, transparent 45%);
+            pointer-events: none;
+        }
+
+        .ai-viz::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(71, 85, 105, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(71, 85, 105, 0.06) 1px, transparent 1px);
+            background-size: 36px 36px;
+            mask-image: radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0.75), transparent 80%);
+            pointer-events: none;
+        }
+
+        .ai-viz-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            --ai-two-col-gap: 28px;
+            --ai-two-col-max: 1100px;
+        }
+
+        .ai-viz .section-header {
+            margin-bottom: 60px;
+        }
+
+        .ai-viz .section-title {
+            color: #0f172a;
+        }
+
+        .ai-viz .section-subtitle {
+            color: #5f6b7e;
+        }
+
+        .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #ffffff, #f4f7fd);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #35508a;
+            margin-bottom: 16px;
+            border: 1px solid #d3ddee;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        }
+
+        .ai-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .ai-demo-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--ai-two-col-gap);
+            align-items: stretch;
+            max-width: var(--ai-two-col-max);
+            margin: 0 auto;
+        }
+
+        .ai-steps-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--ai-two-col-gap);
+            margin: 0 auto 22px;
+            max-width: var(--ai-two-col-max);
+        }
+
+        .ai-step-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: 1px solid #d3ddea;
+            background: rgba(255, 255, 255, 0.88);
+            color: #475569;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            justify-content: center;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .ai-step-number {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4f46e5, #2563eb);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+        }
+
+        .ai-demo-workflow {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-demo-left {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            min-height: 480px;
+        }
+
+        .ai-demo-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ai-demo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-demo-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .ai-demo-subtitle {
+            color: var(--gray-400);
+            font-size: 0.8rem;
+        }
+
+        /* Mini Triangle in AI Demo */
+        .ai-triangle {
+            margin-bottom: 20px;
+        }
+
+        .ai-triangle-grid {
+            display: grid;
+            gap: 2px;
+            font-size: 10px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .ai-triangle-row {
+            display: flex;
+            gap: 2px;
+        }
+
+        .ai-triangle-cell {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 8px;
+            border-radius: 4px;
+            min-width: 48px;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .ai-triangle-cell.header {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .ai-triangle-cell.active {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        /* 提示词 Input */
+        .ai-prompt-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+        }
+
+        .ai-prompt-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .ai-prompt-label svg {
+            width: 14px;
+            height: 14px;
+            color: var(--primary-light);
+        }
+
+        .ai-prompt-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 0.95rem;
+            width: 100%;
+            min-height: 60px;
+            resize: none;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .ai-prompt-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            min-height: 60px;
+        }
+
+        .ai-typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 18px;
+            background: var(--primary);
+            margin-left: 2px;
+            animation: blink 1s infinite;
+            vertical-align: text-bottom;
+        }
+
+        .ai-prompt-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .ai-generate-btn {
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .ai-generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .ai-generate-btn.generating {
+            background: rgba(99, 102, 241, 0.3);
+            pointer-events: none;
+        }
+
+        .ai-generate-btn .dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .ai-generate-btn .dot {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: dotBounce 1.4s infinite;
+        }
+
+        .ai-generate-btn .dot:nth-child(2) { animation-delay: 0.2s; }
+        .ai-generate-btn .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .ai-model-tag {
+            color: var(--gray-500);
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* AI Generated Chart */
+        .ai-demo-right {
+            position: relative;
+        }
+
+        .ai-chart-container {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            min-height: 480px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .ai-chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .ai-chart-title {
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .ai-chart-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .ai-chart-action {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: var(--gray-400);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .ai-chart-action:hover {
+            background: rgba(99, 102, 241, 0.3);
+            color: white;
+        }
+
+        .ai-chart-canvas {
+            flex: 1;
+            position: relative;
+            min-height: 280px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .ai-chart-canvas:hover {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+        }
+
+        /* Chart SVG */
+        .ai-chart-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .chart-grid-line {
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 1;
+        }
+
+        .chart-axis-label {
+            fill: var(--gray-500);
+            font-size: 10px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .chart-line {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 800;
+            stroke-dashoffset: 800;
+            transition: stroke-dashoffset 0s;
+        }
+
+        .chart-line.animate,
+        .chart-line-2.animate {
+            animation: drawChart 1.8s ease forwards;
+        }
+
+        .chart-line-2 {
+            stroke-dasharray: 800;
+            stroke-dashoffset: 800;
+            transition: stroke-dashoffset 0s;
+        }
+
+        .chart-line-trend.animate {
+            animation: drawChart 1.5s ease forwards;
+        }
+
+        .chart-dot {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .chart-dot.visible {
+            opacity: 1;
+        }
+
+        .chart-area {
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .chart-area.visible {
+            opacity: 0.1;
+        }
+
+        /* Legend */
+        .ai-chart-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-400);
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease;
+        }
+
+        .legend-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .legend-color-1 { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+        .legend-color-2 { background: linear-gradient(135deg, #22c55e, #10b981); }
+        .legend-color-3 { background: linear-gradient(135deg, #f59e0b, #f97316); }
+
+        /* Floating AI Refine Chat */
+        .ai-refine-chat {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 12px;
+            padding: 12px 14px;
+            min-width: 260px;
+            max-width: 320px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .ai-refine-chat.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .ai-refine-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ai-refine-header svg {
+            stroke: #a5b4fc;
+        }
+
+        .ai-refine-input {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 8px;
+            padding: 10px 12px;
+            min-height: 20px;
+            font-size: 13px;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        .ai-refine-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .ai-refine-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 14px;
+            background: #6366f1;
+            margin-left: 1px;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .ai-refine-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+
+        .ai-refine-hint {
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .ai-refine-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: none;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0.5;
+        }
+
+        .ai-refine-btn.ready {
+            opacity: 1;
+        }
+
+        .ai-refine-btn.ready:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Click hint overlay */
+        .ai-click-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 20px;
+            color: #a5b4fc;
+            font-size: 12px;
+            font-weight: 500;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .ai-click-hint.visible {
+            opacity: 1;
+            visibility: visible;
+            animation: pulse-hint 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-hint {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.02); }
+        }
+
+        .ai-click-hint svg {
+            stroke: #a5b4fc;
+        }
+
+        /* Chart canvas click indicator */
+        .ai-chart-canvas.clickable {
+            cursor: pointer;
+        }
+
+        .ai-chart-canvas.clickable:hover {
+            background: rgba(99, 102, 241, 0.03);
+        }
+
+        /* Chart refinement pulse animation */
+        @keyframes refinePulse {
+            0% { filter: brightness(1); }
+            30% { filter: brightness(1.15); }
+            100% { filter: brightness(1); }
+        }
+
+        /* Workflow + Workspace Sequence */
+        .ai-workflow-stage {
+            background: rgba(10, 10, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            min-height: 480px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .ai-workflow-stage.visible {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 12px 30px rgba(12, 12, 24, 0.4);
+        }
+
+        .ai-workflow-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .ai-workflow-step {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: all 0.3s ease;
+        }
+
+        .ai-step-index {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.2);
+            color: #c7d2fe;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .ai-workflow-step.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.6);
+            color: #fff;
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+        }
+
+        .ai-workflow-step.complete {
+            background: rgba(34, 197, 94, 0.2);
+            border-color: rgba(34, 197, 94, 0.6);
+            color: #d1fae5;
+        }
+
+        .ai-workflow-step.complete .ai-step-index {
+            background: rgba(34, 197, 94, 0.8);
+            color: #052e16;
+        }
+
+        .ai-workflow-step.up-next {
+            color: #e2e8f0;
+            border-color: rgba(148, 163, 184, 0.35);
+        }
+
+        .ai-workflow-hint {
+            margin-top: 12px;
+            margin-bottom: 4px;
+            color: var(--gray-400);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
+
+        .ai-workflow-body {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 14px;
+            flex: 1;
+        }
+
+        .ai-workspace {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.7), rgba(10, 15, 30, 0.8));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-workspace-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .ai-workspace-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ai-workspace-header-left span {
+            color: white;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .ai-workspace-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-workspace-icon svg {
+            width: 14px;
+            height: 14px;
+            color: white;
+        }
+
+        .ai-workspace-status {
+            font-size: 0.68rem;
+            color: var(--gray-400);
+            background: rgba(99, 102, 241, 0.15);
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .ai-workspace-status.added {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #86efac;
+        }
+
+        .ai-workspace-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .workspace-triangle {
+            display: grid;
+            gap: 2px;
+            font-size: 8px;
+            font-family: 'SF Mono', Monaco, monospace;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .workspace-triangle-row {
+            display: flex;
+            gap: 2px;
+        }
+
+        .workspace-cell {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 4px 5px;
+            border-radius: 3px;
+            min-width: 32px;
+            text-align: right;
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .workspace-cell.header {
+            background: rgba(99, 102, 241, 0.3);
+            color: #c7d2fe;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .ai-workspace-drop {
+            border: 2px dashed rgba(148, 163, 184, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            min-height: 120px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 15, 30, 0.4);
+            position: relative;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .ai-workspace-drop.active {
+            border-color: rgba(99, 102, 241, 0.8);
+            border-style: solid;
+            background: rgba(99, 102, 241, 0.08);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35), 0 0 20px rgba(99, 102, 241, 0.25);
+        }
+
+        .ai-workspace-drop.filled {
+            border-style: solid;
+            border-color: rgba(99, 102, 241, 0.3);
+            background: rgba(15, 23, 42, 0.5);
+            padding: 8px;
+        }
+
+        .ai-workspace-drop-label {
+            color: var(--gray-500);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: opacity 0.3s ease;
+        }
+
+        .ai-workspace-chart {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ai-workspace-chart.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .ai-workspace-drop.filled .ai-workspace-chart {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .ai-workspace-drop.filled .ai-workspace-drop-label {
+            display: none;
+        }
+
+        .workspace-chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .workspace-chart-title {
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .workspace-chart-canvas {
+            flex: 1;
+            min-height: 80px;
+            position: relative;
+        }
+
+        .workspace-chart-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .ai-chart-chip,
+        .ai-drag-ghost {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(20, 30, 50, 0.9));
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            border-radius: 12px;
+            padding: 10px;
+            display: grid;
+            gap: 8px;
+            color: #e2e8f0;
+            box-shadow: 0 8px 24px rgba(8, 8, 20, 0.5);
+            width: fit-content;
+        }
+
+        .ai-chart-chip {
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .ai-chart-chip.visible {
+            opacity: 1;
+            transform: translateY(0);
+            animation: float 3.5s ease-in-out infinite;
+        }
+
+        .ai-chart-chip.ghosted {
+            opacity: 0.3;
+            animation: none;
+        }
+
+        .ai-chip-preview {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 40px;
+            padding: 6px 8px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(8, 8, 16, 0.7);
+        }
+
+        .ai-chip-bar {
+            width: 7px;
+            border-radius: 3px 3px 1px 1px;
+            background: linear-gradient(180deg, #8b5cf6, #6366f1);
+        }
+
+        .ai-chip-bar.alt {
+            background: linear-gradient(180deg, #a855f7, #7c3aed);
+        }
+
+        .ai-chip-line {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            top: 14px;
+            height: 2px;
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+            border-radius: 999px;
+            opacity: 0.9;
+        }
+
+        .ai-chip-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            text-align: center;
+        }
+
+        .ai-drag-ghost {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 6;
+            transform: translate3d(0, 0, 0) scale(0.98);
+            transition: opacity 0.2s ease;
+        }
+
+        .ai-drag-ghost.visible {
+            opacity: 1;
+        }
+
+        /* Drag Mouse Cursor */
+        .ai-drag-cursor {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .ai-drag-cursor.visible {
+            opacity: 1;
+        }
+
+        .ai-drag-cursor svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .ai-drag-cursor.dragging svg {
+            transform: rotate(-10deg);
+        }
+
+        /* Global Chart Ghost for cross-panel animation */
+        .ai-global-chart-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+            border: 2px solid rgba(99, 102, 241, 0.5);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4), 0 0 30px rgba(99, 102, 241, 0.3);
+            backdrop-filter: blur(10px);
+            transform-origin: center center;
+            transition: opacity 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .ai-global-chart-ghost.visible {
+            opacity: 1;
+        }
+
+        .ai-global-chart-ghost.lifting {
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.4);
+            border-color: rgba(99, 102, 241, 0.7);
+        }
+
+        .global-ghost-chart {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .ghost-chart-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .global-ghost-label {
+            font-size: clamp(0.6rem, 2.5vw, 0.85rem);
+            font-weight: 600;
+            color: #e2e8f0;
+            text-align: center;
+            padding: 4px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Global Drag Cursor */
+        .ai-global-drag-cursor {
+            position: fixed;
+            width: 28px;
+            height: 28px;
+            pointer-events: none;
+            z-index: 1001;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+        }
+
+        .ai-global-drag-cursor.visible {
+            opacity: 1;
+        }
+
+        .ai-global-drag-cursor svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .ai-global-drag-cursor.dragging svg {
+            transform: rotate(-12deg);
+        }
+
+        /* Placeholder state */
+        .ai-chart-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--gray-500);
+        }
+
+        .ai-chart-placeholder-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .ai-chart-placeholder p {
+            font-size: 0.9rem;
+        }
+
+        /* Sparkles */
+        .ai-sparkle {
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .ai-sparkle svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--primary-light);
+            animation: sparkle 2s ease infinite;
+        }
+
+        .ai-sparkle:nth-child(1) { top: 10%; left: 20%; animation-delay: 0s; }
+        .ai-sparkle:nth-child(2) { top: 30%; right: 15%; animation-delay: 0.5s; }
+        .ai-sparkle:nth-child(3) { bottom: 20%; left: 10%; animation-delay: 1s; }
+        .ai-sparkle:nth-child(4) { bottom: 40%; right: 25%; animation-delay: 1.5s; }
+
+        /* Animated Mouse Cursor */
+        .ai-mouse-cursor {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        .ai-mouse-cursor.visible {
+            opacity: 1;
+        }
+
+        .ai-mouse-cursor svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        @keyframes cursorClick {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.85); }
+        }
+
+        .ai-mouse-cursor.clicking {
+            animation: cursorClick 0.2s ease;
+        }
+
+        /* Smaller triangle cells for 8x8 */
+        .ai-triangle-cell {
+            min-width: 42px;
+            padding: 4px 6px;
+            font-size: 9px;
+        }
+
+        .ai-triangle-grid {
+            gap: 1px;
+        }
+
+        .ai-triangle-row {
+            gap: 1px;
+        }
+
+        /* Scrollable triangle container */
+        .ai-triangle {
+            margin-bottom: 16px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .ai-triangle::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .ai-triangle::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+        }
+
+        .ai-triangle::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 2px;
+        }
+
+        /* Clickable prompt area */
+        .ai-prompt-container {
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .ai-prompt-container:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        /* Chart type 2 - Bar chart styles */
+        .chart-bar-rect {
+            opacity: 0;
+            transform-origin: bottom;
+            transition: opacity 0.3s ease;
+        }
+
+        .chart-bar-rect.visible {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .ai-demo-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .ai-steps-row {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .ai-triangle-cell {
+                min-width: 36px;
+                padding: 3px 4px;
+                font-size: 8px;
+            }
+
+            .ai-chart-legend {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .ai-workflow-body {
+                grid-template-columns: 1fr;
+            }
+
+            .ai-workspace-content {
+                gap: 8px;
+            }
+
+            .ai-chart-chip {
+                width: 100%;
+            }
+        }
+
+        /* Dataset-style AI visualization demo */
+        .ai-dataset-demo {
+            align-items: flex-start;
+        }
+
+        .ai-dataset-demo .ai-demo-left,
+        .ai-dataset-demo .ai-demo-right {
+            background: transparent;
+            border: none;
+            padding: 0;
+            min-height: auto;
+            backdrop-filter: none;
+        }
+
+        .ai-dataset-demo .small {
+            color: #5b6476;
+        }
+
+        .ai-prompt-workbench {
+            background: #ffffff;
+            border: 1px solid #d6dbe6;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.2);
+        }
+
+        .ai-prompt-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
+            min-height: 30px;
+        }
+
+        .ai-style-pill {
+            border: 1px solid #c7d2fe;
+            background: #eef2ff;
+            color: #4338ca;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+        }
+
+        .ai-prompt-preview {
+            min-height: 74px;
+            border: 1px solid #d9dee9;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font: 13px/1.5 Consolas, "SF Mono", "Courier New", monospace;
+            color: #1f2937;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        .ai-prompt-caret {
+            display: inline-block;
+            width: 2px;
+            height: 14px;
+            background: #4f46e5;
+            margin-left: 1px;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        .ai-apply-style-btn {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #1f2937;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ai-apply-style-btn:hover {
+            border-color: #8aa8ff;
+            background: #eef4ff;
+        }
+
+        .ai-apply-style-btn.is-working {
+            background: #e0e7ff;
+            border-color: #a5b4fc;
+            color: #3730a3;
+        }
+
+        .ai-dataset-panel {
+            background: #ffffff;
+            border: 1px solid #d4d8e2;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+        }
+
+        #aiTableMetaRow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .ai-muted {
+            color: #7b879c !important;
+        }
+
+        #aiTableWrap {
+            width: 100%;
+            overflow: auto;
+        }
+
+        #aiTableWrap table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: max-content;
+            min-width: 100%;
+            table-layout: fixed;
+            font-size: 13px;
+            color: #1f2937;
+        }
+
+        #aiTableWrap th,
+        #aiTableWrap td {
+            border: 0;
+            border-right: 1px solid #dde3ec;
+            border-bottom: 1px solid #dde3ec;
+            min-width: 68px;
+            height: 24px;
+            line-height: 24px;
+            padding: 0 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-sizing: border-box;
+        }
+
+        #aiTableWrap thead th {
+            text-align: center;
+            font-weight: 500;
+            background: #f3f5f9;
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            border-top: 1px solid #dde3ec;
+        }
+
+        #aiTableWrap tbody td:not(:first-child) {
+            text-align: right;
+        }
+
+        #aiTableWrap th:first-child,
+        #aiTableWrap td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background: #f3f5f9;
+            border-left: 1px solid #dde3ec;
+            box-shadow: 1px 0 0 #dde3ec;
+            text-align: center;
+            min-width: 76px;
+            max-width: 94px;
+        }
+
+        #aiTableWrap thead th:first-child {
+            z-index: 4;
+        }
+
+        #aiTableWrap td.na {
+            background: #f8fafc;
+            color: transparent;
+            border-color: #eef2f7;
+        }
+
+        #aiChartPanel {
+            height: 460px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        #aiChartPanel .chartHeader {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+            min-height: 30px;
+        }
+
+        #aiChartPanel .chartRow {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        #aiChartPanel .chartCanvasWrap {
+            flex: 1 1 auto;
+            min-width: 0;
+            position: relative;
+            border: 1px solid #e4e8f0;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            padding: 4px;
+            overflow: hidden;
+        }
+
+        #aiChartPanel .chartLegend {
+            width: 72px;
+            flex: 0 0 72px;
+            max-height: 100%;
+            overflow-y: auto;
+            border-left: 1px solid #e5e7eb;
+            padding-left: 6px;
+            box-sizing: border-box;
+        }
+
+        #aiChartPanel .legendItem {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 1px 2px;
+            color: #374151;
+            font-size: 12px;
+        }
+
+        #aiChartPanel .legendSwatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex: 0 0 auto;
+        }
+
+        #aiChartPanel .legendLabel {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ai-style-chart {
+            position: absolute;
+            inset: 8px;
+            width: calc(100% - 16px);
+            height: calc(100% - 16px);
+            opacity: 0;
+            transform: translateY(8px);
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            pointer-events: none;
+        }
+
+        .ai-style-chart.is-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .ai-style-chart .ai-grid-line {
+            stroke: #e8edf5;
+            stroke-width: 1;
+        }
+
+        .ai-style-chart .ai-axis-line {
+            stroke: #d5dce8;
+            stroke-width: 1.1;
+        }
+
+        .ai-style-chart .ai-axis-label {
+            fill: #6b7280;
+            font-size: 11px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .ai-style-chart .ai-axis-title {
+            fill: #4b5563;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .ai-style-chart .ai-series {
+            fill: none;
+            stroke-width: 2.4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 720;
+            stroke-dashoffset: 720;
+        }
+
+        .ai-style-chart .ai-point {
+            opacity: 0;
+            transform: scale(0.6);
+            transform-origin: center center;
+        }
+
+        .ai-style-chart.is-active .ai-series {
+            animation: aiSeriesDraw 0.9s ease forwards;
+        }
+
+        .ai-style-chart.is-active .ai-point {
+            animation: aiPointPop 0.35s ease forwards;
+        }
+
+        .ai-style-chart.is-active .ai-point:nth-of-type(2n) {
+            animation-delay: 0.05s;
+        }
+
+        .ai-style-chart.is-active .ai-point:nth-of-type(3n) {
+            animation-delay: 0.1s;
+        }
+
+        .ai-style-transition {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;
+            background: linear-gradient(110deg, rgba(59, 130, 246, 0) 10%, rgba(59, 130, 246, 0.18) 50%, rgba(59, 130, 246, 0) 90%);
+        }
+
+        .ai-style-transition.run {
+            animation: aiStyleSweep 0.55s ease;
+        }
+
+        .ai-style-note {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: #eef4ff;
+            border: 1px solid #d7e4ff;
+            color: #264487;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @keyframes aiSeriesDraw {
+            to { stroke-dashoffset: 0; }
+        }
+
+        @keyframes aiPointPop {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes aiStyleSweep {
+            0% {
+                opacity: 0;
+                transform: translateX(-35%);
+            }
+            15% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateX(35%);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            #aiChartPanel {
+                height: auto;
+                min-height: 420px;
+            }
+
+            #aiChartPanel .chartRow {
+                flex-direction: column;
+            }
+
+            #aiChartPanel .chartLegend {
+                width: 100%;
+                flex: 0 0 auto;
+                border-left: none;
+                border-top: 1px solid #e5e7eb;
+                padding: 8px 0 0;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 4px 10px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            #aiTableWrap th,
+            #aiTableWrap td {
+                min-width: 58px;
+                font-size: 11px;
+                padding: 0 4px;
+            }
+
+            #aiChartPanel .chartCanvasWrap {
+                min-height: 250px;
+            }
+
+            .ai-prompt-preview {
+                min-height: 86px;
+            }
+        }
+        /* Stochastic Simulation Section */
+        .stochastic {
+            padding: 120px 24px;
+            background: linear-gradient(180deg, #fafbff 0%, #f0f4ff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stochastic::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 80% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 20% 80%, rgba(34, 197, 94, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .stochastic-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stochastic-content {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 60px;
+            align-items: center;
+            margin-top: 60px;
+        }
+
+        .stochastic-info h3 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 16px;
+        }
+
+        .stochastic-info p {
+            color: var(--gray-600);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .stochastic-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+
+        .stochastic-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .stochastic-features li svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .sim-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1));
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #059669;
+            margin-bottom: 16px;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .sim-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Simulation Visualization */
+        .sim-visual {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+        }
+
+        .sim-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .sim-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sim-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .sim-icon svg {
+            width: 22px;
+            height: 22px;
+            color: white;
+        }
+
+        .sim-title {
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 1rem;
+        }
+
+        .sim-subtitle {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+        }
+
+        .sim-counter {
+            text-align: right;
+        }
+
+        .sim-counter-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .sim-counter-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Distribution Chart */
+        .sim-chart {
+            position: relative;
+            height: 220px;
+            margin-bottom: 20px;
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.02), transparent);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .sim-chart-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .distribution-bar {
+            fill: url(#distGradient);
+            opacity: 0;
+            transform-origin: bottom;
+            transition: opacity 0.3s ease, height 0.3s ease;
+        }
+
+        .distribution-bar.visible {
+            opacity: 1;
+        }
+
+        .percentile-line {
+            stroke-width: 2;
+            stroke-dasharray: 6, 4;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .percentile-line.visible {
+            opacity: 1;
+        }
+
+        .percentile-label {
+            font-size: 10px;
+            font-family: 'Inter', sans-serif;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .percentile-label.visible {
+            opacity: 1;
+        }
+
+        .mean-line {
+            stroke: #ef4444;
+            stroke-width: 2.5;
+        }
+
+        .p10-line { stroke: #22c55e; }
+        .p50-line { stroke: #f59e0b; }
+        .p90-line { stroke: #ef4444; }
+
+        /* Stats Grid */
+        .sim-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .sim-stat {
+            background: var(--gray-50);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .sim-stat:hover {
+            background: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
+        }
+
+        .sim-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 4px;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .sim-stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sim-stat.highlight .sim-stat-value {
+            color: var(--primary);
+        }
+
+        /* Simulation particles */
+        .sim-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @keyframes particleFall {
+            0% {
+                opacity: 1;
+                transform: translateY(-20px) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(0) scale(0.5);
+            }
+        }
+
+        /* Play button */
+        .sim-play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .sim-play-btn:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.5);
+        }
+
+        .sim-play-btn svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+            margin-left: 3px;
+        }
+
+        .sim-play-btn.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @media (max-width: 1024px) {
+            .stochastic-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .sim-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* 工作流自动化 Section */
+        .workflow-auto {
+            padding: 120px 24px;
+            background: linear-gradient(180deg, #f0f4ff 0%, #faf5ff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .workflow-auto::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .workflow-auto-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .workflow-auto-content {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 60px;
+            align-items: center;
+            margin-top: 60px;
+        }
+
+        .workflow-auto-info {
+            order: 2;
+        }
+
+        .workflow-auto-info h3 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 16px;
+        }
+
+        .workflow-auto-info p {
+            color: var(--gray-600);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .workflow-auto-features {
+            list-style: none;
+            margin-bottom: 28px;
+        }
+
+        .workflow-auto-features li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .workflow-auto-features li svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .auto-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(139, 92, 246, 0.1));
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #7c3aed;
+            margin-bottom: 16px;
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        .auto-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Workflow Demo Visual */
+        .workflow-demo {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 25px 80px rgba(99, 102, 241, 0.15), 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            position: relative;
+            order: 1;
+        }
+
+        .workflow-demo-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .workflow-demo-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .workflow-demo-title svg {
+            width: 16px;
+            height: 16px;
+            color: var(--primary);
+        }
+
+        .workflow-demo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .demo-run-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .demo-run-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .demo-run-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        .demo-run-btn.running {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        .workflow-demo-body {
+            display: flex;
+            height: 320px;
+        }
+
+        /* Demo Sidebar */
+        .demo-sidebar {
+            width: 140px;
+            background: #fafbfc;
+            border-right: 1px solid var(--gray-200);
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .demo-sidebar-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding: 0 4px;
+        }
+
+        .demo-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--gray-700);
+            cursor: grab;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .demo-step:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+        }
+
+        .demo-step.active {
+            background: #e7f0ff;
+            border-color: var(--primary);
+        }
+
+        .demo-step.dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .demo-step.drop-target {
+            border: 2px dashed var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .demo-step-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .demo-step-icon.import { background: #dbeafe; color: #2563eb; }
+        .demo-step-icon.transform { background: #fef3c7; color: #d97706; }
+        .demo-step-icon.analyze { background: #dcfce7; color: #16a34a; }
+        .demo-step-icon.export { background: #f3e8ff; color: #9333ea; }
+
+        .demo-step-icon svg {
+            width: 10px;
+            height: 10px;
+        }
+
+        .demo-add-step {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border: 1px dashed var(--gray-300);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: auto;
+        }
+
+        .demo-add-step:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        /* Demo Workspace */
+        .demo-workspace {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-workspace-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 脚本编辑器 */
+        .demo-script-editor {
+            flex: 1;
+            background: #1e293b;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .script-editor-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #0f172a;
+            border-bottom: 1px solid #334155;
+        }
+
+        .script-tab {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #1e293b;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: #94a3b8;
+        }
+
+        .script-tab.active {
+            background: #334155;
+            color: #f1f5f9;
+        }
+
+        .script-tab svg {
+            width: 10px;
+            height: 10px;
+        }
+
+        .script-editor-content {
+            flex: 1;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.7rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .script-line {
+            display: flex;
+            gap: 12px;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .script-line.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .line-number {
+            color: #475569;
+            min-width: 16px;
+            text-align: right;
+        }
+
+        .line-content {
+            flex: 1;
+        }
+
+        .code-keyword { color: #c084fc; }
+        .code-function { color: #60a5fa; }
+        .code-string { color: #4ade80; }
+        .code-comment { color: #64748b; font-style: italic; }
+        .code-variable { color: #fbbf24; }
+
+        /* Demo 输出 */
+        .demo-output {
+            height: 60px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .output-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .output-title {
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .output-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            color: var(--gray-500);
+        }
+
+        .output-status.success {
+            color: #16a34a;
+        }
+
+        .output-status svg {
+            width: 10px;
+            height: 10px;
+        }
+
+        .output-content {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.65rem;
+            color: var(--gray-600);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .output-content.visible {
+            opacity: 1;
+        }
+
+        /* Animated Cursor */
+        .demo-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .demo-cursor.visible {
+            opacity: 1;
+        }
+
+        .demo-cursor svg {
+            width: 20px;
+            height: 20px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        /* Progress indicator */
+        .workflow-progress {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+        }
+
+        .progress-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gray-300);
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background: var(--primary);
+            transform: scale(1.2);
+        }
+
+        .progress-dot.complete {
+            background: #22c55e;
+        }
+
+        @media (max-width: 1024px) {
+            .workflow-auto-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .workflow-auto-info {
+                order: 1;
+            }
+
+            .workflow-demo {
+                order: 2;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .workflow-demo-body {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .demo-sidebar {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                border-right: none;
+                border-bottom: 1px solid var(--gray-200);
+            }
+
+            .demo-workspace {
+                min-height: 280px;
+            }
+        }
+
+        /* Workflow Section */
+        .workflow {
+            padding: 120px 24px;
+            background: linear-gradient(180deg, var(--gray-50), white);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .workflow-bg-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle at 1px 1px, var(--gray-200) 1px, transparent 0);
+            background-size: 40px 40px;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .workflow-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .workflow-steps {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 70px;
+            position: relative;
+        }
+
+        .workflow-steps::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            left: 15%;
+            right: 15%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), #a855f7, var(--primary));
+            background-size: 200% 100%;
+            animation: gradientMove 3s ease infinite;
+            border-radius: 2px;
+        }
+
+        .workflow-step {
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0 auto 24px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s ease;
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.2);
+        }
+
+        .workflow-step:hover .step-number {
+            background: linear-gradient(135deg, var(--primary), #a855f7);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 12px 35px rgba(99, 102, 241, 0.4);
+        }
+
+        .workflow-step h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+
+        .workflow-step p {
+            font-size: 0.95rem;
+            color: var(--gray-600);
+            line-height: 1.6;
+        }
+
+        /* 价值优势 Section */
+        .benefits {
+            padding: 120px 24px;
+            background: white;
+        }
+
+        .benefits-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 100px;
+            align-items: center;
+        }
+
+        .benefits-list {
+            list-style: none;
+        }
+
+        .benefits-list li {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 32px;
+            padding: 20px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .benefits-list li:hover {
+            background: var(--gray-50);
+            transform: translateX(10px);
+        }
+
+        .benefit-check {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: white;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .benefit-text h4 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 6px;
+        }
+
+        .benefit-text p {
+            color: var(--gray-600);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .benefits-visual {
+            background: linear-gradient(135deg, var(--primary), #7c3aed);
+            border-radius: 24px;
+            padding: 50px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(99, 102, 241, 0.3);
+        }
+
+        .benefits-visual::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.8));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-number.counting {
+            animation: countUp 0.5s ease forwards;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* Animated line decoration */
+        .line-decoration {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 60px;
+            opacity: 0.3;
+        }
+
+        .line-decoration svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .line-decoration path {
+            fill: none;
+            stroke: white;
+            stroke-width: 2;
+            stroke-dasharray: 300;
+            stroke-dashoffset: 300;
+            animation: drawLine 2s ease forwards;
+        }
+
+        /* CTA Section */
+        .cta {
+            padding: 120px 24px;
+            background: var(--secondary);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .cta-container {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta h2 {
+            font-size: 2.75rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .cta p {
+            font-size: 1.25rem;
+            color: var(--gray-400);
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .cta .btn-primary {
+            background: white;
+            color: var(--secondary);
+            box-shadow: 0 8px 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .cta .btn-primary:hover {
+            background: var(--gray-100);
+            box-shadow: 0 12px 40px rgba(255, 255, 255, 0.3);
+        }
+
+        .cta .btn-secondary {
+            border-color: var(--gray-600);
+            color: white;
+            background: transparent;
+        }
+
+        .cta .btn-secondary:hover {
+            border-color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Footer */
+        footer {
+            padding: 50px 24px;
+            background: var(--gray-900);
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .footer-logo .logo-icon {
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+
+        footer p {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .hero-container {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+
+            .hero-content h1 {
+                font-size: 2.75rem;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .workflow-steps {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .workflow-steps::before {
+                display: none;
+            }
+
+            .benefits-container {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 120px 24px 60px;
+            }
+
+            .hero-content h1 {
+                font-size: 2.25rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-steps {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .mini-chart {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <div class="logo-icon" aria-label="ArcRho 标识">
+                    <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                        <rect x="3" y="3" width="5" height="5" rx="1.2"></rect>
+                        <rect x="10" y="3" width="5" height="5" rx="1.2"></rect>
+                        <rect x="17" y="3" width="5" height="5" rx="1.2"></rect>
+                        <rect x="3" y="10" width="5" height="5" rx="1.2"></rect>
+                        <rect x="10" y="10" width="5" height="5" rx="1.2"></rect>
+                        <rect x="3" y="17" width="5" height="5" rx="1.2"></rect>
+                    </svg>
+                </div>
+                ArcRho
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">功能</a></li>
+                <li><a href="#workflow">使用流程</a></li>
+                <li><a href="#benefits">价值优势</a></li>
+            </ul>
+            <a href="#contact" class="nav-cta">预约演示</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+        </div>
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-badge">现已上线</div>
+                <h1>精算分析 <span>化繁为简</span></h1>
+                <p>
+                    通过强大的赔款三角分析、自动化流程与无缝电子表格集成，全面提升准备金评估效率，
+                    结合 AI 辅助文档核查与智能可视化能力，
+                    让分析更快、更稳、更透明。
+                    由精算师打造，服务精算师。
+                </p>
+                <div class="hero-buttons">
+                    <a href="#contact" class="btn-primary">
+                        立即开始
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <a href="#features" class="btn-secondary">了解更多</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-image">
+                    <div class="app-preview">
+                        <div class="app-titlebar">
+                            <div class="app-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                            <span class="app-title">ArcRho - 赔款发展三角分析</span>
+                        </div>
+                        <div class="app-content">
+                            <div class="triangle-chart">
+                                <div class="triangle-table">
+                                    <div class="triangle-preview">
+                                        <div class="triangle-row">
+                                            <div class="triangle-cell header">年度</div>
+                                            <div class="triangle-cell header">12</div>
+                                            <div class="triangle-cell header">24</div>
+                                            <div class="triangle-cell header">36</div>
+                                            <div class="triangle-cell header">48</div>
+                                            <div class="triangle-cell header">终极</div>
+                                        </div>
+                                        <div class="triangle-row">
+                                            <div class="triangle-cell header">2020</div>
+                                            <div class="triangle-cell">1,245</div>
+                                            <div class="triangle-cell">2,890</div>
+                                            <div class="triangle-cell">3,567</div>
+                                            <div class="triangle-cell highlight">4,012</div>
+                                            <div class="triangle-cell projected">4,234</div>
+                                        </div>
+                                        <div class="triangle-row">
+                                            <div class="triangle-cell header">2021</div>
+                                            <div class="triangle-cell">1,389</div>
+                                            <div class="triangle-cell">3,102</div>
+                                            <div class="triangle-cell highlight">3,845</div>
+                                            <div class="triangle-cell projected">4,298</div>
+                                            <div class="triangle-cell projected">4,512</div>
+                                        </div>
+                                        <div class="triangle-row">
+                                            <div class="triangle-cell header">2022</div>
+                                            <div class="triangle-cell">1,567</div>
+                                            <div class="triangle-cell highlight">3,456</div>
+                                            <div class="triangle-cell projected">4,156</div>
+                                            <div class="triangle-cell projected">4,645</div>
+                                            <div class="triangle-cell projected">4,878</div>
+                                        </div>
+                                        <div class="triangle-row">
+                                            <div class="triangle-cell header">2023</div>
+                                            <div class="triangle-cell highlight">1,823</div>
+                                            <div class="triangle-cell projected">4,045</div>
+                                            <div class="triangle-cell projected">4,878</div>
+                                            <div class="triangle-cell projected">5,452</div>
+                                            <div class="triangle-cell projected">5,726</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mini-chart">
+                                    <div class="chart-bar-container">
+                                        <div class="chart-bar"></div>
+                                        <div class="chart-bar"></div>
+                                        <div class="chart-bar"></div>
+                                        <div class="chart-bar"></div>
+                                        <div class="chart-bar"></div>
+                                        <div class="chart-bar"></div>
+                                    </div>
+                                    <div class="chart-label">终极赔款</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能 Section -->
+    <section class="features" id="features">
+        <div class="features-container">
+            <div class="section-header animate-on-scroll">
+                <p class="section-label">功能</p>
+                <h2 class="section-title">赔款准备金评估所需的一切能力</h2>
+                <p class="section-subtitle">专为精算工作流打造的能力组合，从数据导入到最终报告全流程覆盖。</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card animate-on-scroll animate-delay-1">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M3 9h18M9 21V9"/>
+                        </svg>
+                    </div>
+                    <h3>核心工具</h3>
+                    <p>
+                        将准备金分析核心工具集中在同一平台。
+                        内置主流精算方法与模型，支持数据无缝导入与校验。
+                    </p>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-2">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+                        </svg>
+                    </div>
+                    <h3>数据集成</h3>
+                    <p>
+                        原生支持电子表格工作簿与数据库系统读写。
+                        保留现有模板与作业流程。
+                    </p>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-3">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                    </div>
+                    <h3>工作流自动化</h3>
+                    <p>通过拖拽即可构建多步骤工作流，并借助内置编码模块释放脚本化与自动化能力。</p>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-1">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                    </div>
+                    <h3>项目管理</h3>
+                    <p>在友好的前端界面中组织项目，一站访问全部准备金分析。</p>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-2">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <line x1="18" y1="20" x2="18" y2="10"/>
+                            <line x1="12" y1="20" x2="12" y2="4"/>
+                            <line x1="6" y1="20" x2="6" y2="14"/>
+                        </svg>
+                    </div>
+                    <h3>数据可视化</h3>
+                    <p>支持发展曲线、赔款形态与趋势分析的交互式图表，结果可直接用于汇报。</p>
+                </div>
+                <div class="feature-card animate-on-scroll animate-delay-3">
+                    <div class="feature-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <h3>本地安全</h3>
+                    <p>数据始终留在本机，无需上传云端，降低隐私风险，敏感信息完全可控。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+        <!-- AI Visualization Section -->
+    <section class="ai-viz" id="ai-viz">
+        <div class="ai-viz-container">
+            <div class="section-header animate-on-scroll" style="text-align: center;">
+                <div class="ai-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    实验性功能
+                </div>
+                <h2 class="section-title">构建可视化的全新方式</h2>
+                <p class="section-subtitle">通过 AI 提示词可即时切换图表样式。该演示复刻了数据查看页的表格与图表布局，并在“按列/按行”两种模式间应用样式提示词。</p>
+            </div>
+
+            <div class="ai-steps-row animate-on-scroll">
+                <div class="ai-step-pill">
+                    <span class="ai-step-number">1</span>
+                    提示词
+                </div>
+                <div class="ai-step-pill">
+                    <span class="ai-step-number">2</span>
+                    样式更新
+                </div>
+            </div>
+
+            <div class="ai-demo-container ai-dataset-demo animate-on-scroll">
+                <div class="ai-demo-left">
+                    <div class="ai-prompt-workbench">
+                        <div class="ai-prompt-toolbar">
+                            <span class="small">图表样式 AI 提示词</span>
+                            <span class="ai-style-pill" id="ai提示词Badge">样式 1</span>
+                        </div>
+                        <div class="ai-prompt-preview" id="ai提示词Preview"></div>
+                        <button class="ai-apply-style-btn" id="aiApplyStyleBtn" type="button">更新</button>
+                    </div>
+
+                    <div class="ai-dataset-panel" id="aiTriPanel">
+                        <div id="aiTableMetaRow">
+                            <div class="small"><b>已付赔款三角</b></div>
+                            <div class="small ai-muted">商业车险</div>
+                        </div>
+                        <div id="aiTableWrap">
+                            <table aria-label="三角数据预览">
+                                <thead>
+                                    <tr>
+                                        <th>事故年度</th>
+                                        <th>12</th>
+                                        <th>24</th>
+                                        <th>36</th>
+                                        <th>48</th>
+                                        <th>60</th>
+                                        <th>72</th>
+                                        <th>84</th>
+                                        <th>96</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <th>2016</th>
+                                        <td class="cell">1,124</td>
+                                        <td class="cell">2,456</td>
+                                        <td class="cell">3,234</td>
+                                        <td class="cell">4,289</td>
+                                        <td class="cell">4,123</td>
+                                        <td class="cell">4,345</td>
+                                        <td class="cell">4,489</td>
+                                        <td class="cell">4,567</td>
+                                    </tr>
+                                    <tr>
+                                        <th>2017</th>
+                                        <td class="cell">1,245</td>
+                                        <td class="cell">2,678</td>
+                                        <td class="cell">3,456</td>
+                                        <td class="cell">4,012</td>
+                                        <td class="cell">4,378</td>
+                                        <td class="cell">4,612</td>
+                                        <td class="cell">4,756</td>
+                                        <td class="na"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2018</th>
+                                        <td class="cell">1,389</td>
+                                        <td class="cell">2,890</td>
+                                        <td class="cell">3,678</td>
+                                        <td class="cell">4,234</td>
+                                        <td class="cell">4,589</td>
+                                        <td class="cell">4,823</td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2019</th>
+                                        <td class="cell">1,456</td>
+                                        <td class="cell">3,102</td>
+                                        <td class="cell">3,923</td>
+                                        <td class="cell">4,512</td>
+                                        <td class="cell">4,867</td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2020</th>
+                                        <td class="cell">1,567</td>
+                                        <td class="cell">3,345</td>
+                                        <td class="cell">4,156</td>
+                                        <td class="cell">4,789</td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2021</th>
+                                        <td class="cell">1,678</td>
+                                        <td class="cell">3,567</td>
+                                        <td class="cell">4,389</td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2022</th>
+                                        <td class="cell">1,823</td>
+                                        <td class="cell">3,789</td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                    </tr>
+                                    <tr>
+                                        <th>2023</th>
+                                        <td class="cell">1,956</td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                        <td class="na"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-demo-right animate-delay-2">
+                    <div class="ai-dataset-panel" id="aiChartPanel">
+                        <div class="chartHeader">
+                            <span class="small"><b id="aiChartTitle">发展曲线</b></span>
+                        </div>
+
+                        <div class="chartRow">
+                            <div class="chartCanvasWrap">
+                                <div class="ai-style-transition" id="aiStyleTransition"></div>
+
+                                <svg class="ai-style-chart is-active" id="aiStyleChartByCol" viewBox="0 0 520 300" aria-label="按列图表样式">
+                                    <line class="ai-grid-line" x1="56" y1="32" x2="472" y2="32"></line>
+                                    <line class="ai-grid-line" x1="56" y1="72" x2="472" y2="72"></line>
+                                    <line class="ai-grid-line" x1="56" y1="112" x2="472" y2="112"></line>
+                                    <line class="ai-grid-line" x1="56" y1="152" x2="472" y2="152"></line>
+                                    <line class="ai-grid-line" x1="56" y1="192" x2="472" y2="192"></line>
+                                    <line class="ai-grid-line" x1="56" y1="232" x2="472" y2="232"></line>
+                                    <line class="ai-axis-line" x1="56" y1="232" x2="472" y2="232"></line>
+                                    <line class="ai-axis-line" x1="56" y1="32" x2="56" y2="232"></line>
+
+                                    <path class="ai-series" stroke="#0ea5e9" d="M74 196 L126 188 L178 180 L230 172 L282 164 L334 156 L386 149 L438 142"></path>
+                                    <path class="ai-series" stroke="#8b5cf6" d="M74 181 L126 171 L178 162 L230 152 L282 144 L334 136 L386 128 L438 121"></path>
+                                    <path class="ai-series" stroke="#22c55e" d="M74 167 L126 156 L178 146 L230 136 L282 127 L334 119 L386 112 L438 106"></path>
+                                    <path class="ai-series" stroke="#f59e0b" d="M74 152 L126 141 L178 130 L230 120 L282 111 L334 103 L386 96 L438 90"></path>
+
+                                    <circle class="ai-point" cx="74" cy="196" r="3" fill="#0ea5e9"></circle>
+                                    <circle class="ai-point" cx="230" cy="172" r="3" fill="#0ea5e9"></circle>
+                                    <circle class="ai-point" cx="438" cy="142" r="3" fill="#0ea5e9"></circle>
+                                    <circle class="ai-point" cx="74" cy="181" r="3" fill="#8b5cf6"></circle>
+                                    <circle class="ai-point" cx="282" cy="144" r="3" fill="#8b5cf6"></circle>
+                                    <circle class="ai-point" cx="438" cy="121" r="3" fill="#8b5cf6"></circle>
+                                    <circle class="ai-point" cx="74" cy="167" r="3" fill="#22c55e"></circle>
+                                    <circle class="ai-point" cx="334" cy="119" r="3" fill="#22c55e"></circle>
+                                    <circle class="ai-point" cx="438" cy="106" r="3" fill="#22c55e"></circle>
+                                    <circle class="ai-point" cx="74" cy="152" r="3" fill="#f59e0b"></circle>
+                                    <circle class="ai-point" cx="334" cy="103" r="3" fill="#f59e0b"></circle>
+                                    <circle class="ai-point" cx="438" cy="90" r="3" fill="#f59e0b"></circle>
+
+                                    <text class="ai-axis-label" x="74" y="252">2016</text>
+                                    <text class="ai-axis-label" x="126" y="252">2017</text>
+                                    <text class="ai-axis-label" x="178" y="252">2018</text>
+                                    <text class="ai-axis-label" x="230" y="252">2019</text>
+                                    <text class="ai-axis-label" x="282" y="252">2020</text>
+                                    <text class="ai-axis-label" x="334" y="252">2021</text>
+                                    <text class="ai-axis-label" x="386" y="252">2022</text>
+                                    <text class="ai-axis-label" x="438" y="252">2023</text>
+                                    <text class="ai-axis-label ai-axis-title" x="270" y="276" text-anchor="middle">事故年度</text>
+                                </svg>
+
+                                <svg class="ai-style-chart" id="aiStyleChartByRow" viewBox="0 0 520 300" aria-label="按行图表样式">
+                                    <line class="ai-grid-line" x1="56" y1="32" x2="472" y2="32"></line>
+                                    <line class="ai-grid-line" x1="56" y1="72" x2="472" y2="72"></line>
+                                    <line class="ai-grid-line" x1="56" y1="112" x2="472" y2="112"></line>
+                                    <line class="ai-grid-line" x1="56" y1="152" x2="472" y2="152"></line>
+                                    <line class="ai-grid-line" x1="56" y1="192" x2="472" y2="192"></line>
+                                    <line class="ai-grid-line" x1="56" y1="232" x2="472" y2="232"></line>
+                                    <line class="ai-axis-line" x1="56" y1="232" x2="472" y2="232"></line>
+                                    <line class="ai-axis-line" x1="56" y1="32" x2="56" y2="232"></line>
+
+                                    <path class="ai-series" stroke="#6366f1" d="M74 194 L126 170 L178 144 L230 120 L282 101 L334 86 L386 74 L438 66"></path>
+                                    <path class="ai-series" stroke="#0ea5e9" d="M74 188 L126 164 L178 140 L230 116 L282 97 L334 84 L386 72"></path>
+                                    <path class="ai-series" stroke="#22c55e" d="M74 180 L126 156 L178 132 L230 109 L282 93 L334 81"></path>
+                                    <path class="ai-series" stroke="#f97316" d="M74 172 L126 148 L178 126 L230 104 L282 89"></path>
+
+                                    <circle class="ai-point" cx="74" cy="194" r="3" fill="#6366f1"></circle>
+                                    <circle class="ai-point" cx="230" cy="120" r="3" fill="#6366f1"></circle>
+                                    <circle class="ai-point" cx="438" cy="66" r="3" fill="#6366f1"></circle>
+                                    <circle class="ai-point" cx="74" cy="188" r="3" fill="#0ea5e9"></circle>
+                                    <circle class="ai-point" cx="230" cy="116" r="3" fill="#0ea5e9"></circle>
+                                    <circle class="ai-point" cx="386" cy="72" r="3" fill="#0ea5e9"></circle>
+                                    <circle class="ai-point" cx="74" cy="180" r="3" fill="#22c55e"></circle>
+                                    <circle class="ai-point" cx="178" cy="132" r="3" fill="#22c55e"></circle>
+                                    <circle class="ai-point" cx="334" cy="81" r="3" fill="#22c55e"></circle>
+                                    <circle class="ai-point" cx="74" cy="172" r="3" fill="#f97316"></circle>
+                                    <circle class="ai-point" cx="178" cy="126" r="3" fill="#f97316"></circle>
+                                    <circle class="ai-point" cx="282" cy="89" r="3" fill="#f97316"></circle>
+
+                                    <text class="ai-axis-label" x="74" y="252">12</text>
+                                    <text class="ai-axis-label" x="126" y="252">24</text>
+                                    <text class="ai-axis-label" x="178" y="252">36</text>
+                                    <text class="ai-axis-label" x="230" y="252">48</text>
+                                    <text class="ai-axis-label" x="282" y="252">60</text>
+                                    <text class="ai-axis-label" x="334" y="252">72</text>
+                                    <text class="ai-axis-label" x="386" y="252">84</text>
+                                    <text class="ai-axis-label" x="438" y="252">96</text>
+                                    <text class="ai-axis-label ai-axis-title" x="270" y="276" text-anchor="middle">发展期</text>
+                                </svg>
+                            </div>
+                            <div id="aiDemoLegend" class="chartLegend" aria-label="图例"></div>
+                        </div>
+
+                        <div class="ai-style-note" id="aiStyleNote">AI 提示词已应用：按列样式</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stochastic Simulation Section -->
+    <section class="stochastic" id="stochastic">
+        <div class="stochastic-container">
+            <div class="section-header animate-on-scroll" style="text-align: center;">
+                <div class="sim-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                    内置模块
+                </div>
+                <h2 class="section-title">链梯法随机模拟</h2>
+                <p class="section-subtitle">以生产可用的方式在数分钟内完成随机模拟——提供合理默认参数，并在需要时支持全量可控。</p>
+            </div>
+
+            <div class="stochastic-content">
+                <!-- Left: Info -->
+                <div class="stochastic-info animate-on-scroll">
+                    <h3>开箱即用，关键处灵活可调。</h3>
+                    <p>
+                        默认提供可直接投入使用的随机准备金引擎（基于 Mack 链梯框架）。
+                        可一键生成准备金分布，
+                        也可按需自定义假设与模拟参数。
+                    </p>
+
+                    <ul class="stochastic-features">
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            一键运行（内置专家级默认参数）
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            残差自助法重抽样
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            假设与模拟参数均可完全自定义
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            分位数输出：P10、P25、P50、P75、P90
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            结果可导出为电子表格或报告文档，并保留完整审计轨迹
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right: Visualization -->
+                <div class="sim-visual animate-on-scroll animate-delay-2">
+                    <div class="sim-header">
+                        <div class="sim-header-left">
+                            <div class="sim-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 20V10M12 20V4M6 20v-6"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="sim-title">准备金分布</div>
+                                <div class="sim-subtitle">模拟结果</div>
+                            </div>
+                        </div>
+                        <div class="sim-counter">
+                            <div class="sim-counter-value" id="simCounter">0</div>
+                            <div class="sim-counter-label">模拟次数</div>
+                        </div>
+                    </div>
+
+                    <div class="sim-chart" id="simChart">
+                        <!-- Play button -->
+                        <button class="sim-play-btn" id="simPlayBtn">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="5 3 19 12 5 21 5 3"/>
+                            </svg>
+                        </button>
+
+                        <svg class="sim-chart-svg" id="simChartSvg" viewBox="0 -15 500 220">
+                            <defs>
+                                <linearGradient id="distGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.9"/>
+                                    <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.6"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- X-axis -->
+                            <line x1="40" y1="180" x2="480" y2="180" stroke="#e2e8f0" stroke-width="1"/>
+
+                            <!-- Y-axis -->
+                            <line x1="40" y1="20" x2="40" y2="180" stroke="#e2e8f0" stroke-width="1"/>
+
+                            <!-- X-axis labels (reserve amounts in millions) -->
+                            <text class="chart-axis-label" x="60" y="195" fill="#94a3b8" font-size="9">2.0M</text>
+                            <text class="chart-axis-label" x="150" y="195" fill="#94a3b8" font-size="9">2.5M</text>
+                            <text class="chart-axis-label" x="240" y="195" fill="#94a3b8" font-size="9">3.0M</text>
+                            <text class="chart-axis-label" x="330" y="195" fill="#94a3b8" font-size="9">3.5M</text>
+                            <text class="chart-axis-label" x="420" y="195" fill="#94a3b8" font-size="9">4.0M</text>
+
+                            <!-- Distribution bars (will be animated) -->
+                            <g id="distributionBars"></g>
+
+                            <!-- Percentile lines -->
+                            <line class="percentile-line p10-line" id="p10Line" x1="95" y1="20" x2="95" y2="180"/>
+                            <line class="percentile-line p50-line" id="p50Line" x1="220" y1="20" x2="220" y2="180"/>
+                            <line class="percentile-line p90-line" id="p90Line" x1="380" y1="20" x2="380" y2="180"/>
+
+                            <!-- Percentile labels -->
+                            <text class="percentile-label" id="p10Label" x="95" y="15" text-anchor="middle" fill="#22c55e" font-size="10" font-weight="600">P10</text>
+                            <text class="percentile-label" id="p50Label" x="220" y="15" text-anchor="middle" fill="#f59e0b" font-size="10" font-weight="600">P50</text>
+                            <text class="percentile-label" id="p90Label" x="380" y="15" text-anchor="middle" fill="#ef4444" font-size="10" font-weight="600">P90</text>
+                        </svg>
+                    </div>
+
+                    <div class="sim-stats">
+                        <div class="sim-stat">
+                            <div class="sim-stat-value" id="stat均值">--</div>
+                            <div class="sim-stat-label">均值</div>
+                        </div>
+                        <div class="sim-stat highlight">
+                            <div class="sim-stat-value" id="statP50">--</div>
+                            <div class="sim-stat-label">中位数（P50）</div>
+                        </div>
+                        <div class="sim-stat">
+                            <div class="sim-stat-value" id="statStdDev">--</div>
+                            <div class="sim-stat-label">标准差</div>
+                        </div>
+                        <div class="sim-stat">
+                            <div class="sim-stat-value" id="statCV">--</div>
+                            <div class="sim-stat-label">变异系数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 工作流自动化 Section -->
+    <section class="workflow-auto" id="workflow-auto">
+        <div class="workflow-auto-container">
+            <div class="section-header animate-on-scroll">
+                <p class="section-label">工作流自动化</p>
+                <h2 class="section-title">搭建 · 脚本化 · <span class="gradient-text">运行</span></h2>
+                <p class="section-subtitle">以简洁拖拽与内置脚本能力，构建强大的自动化工作流。</p>
+            </div>
+
+            <div class="workflow-auto-content">
+                <!-- Workflow Demo Visual -->
+                <div class="workflow-demo animate-on-scroll" id="workflowDemo">
+                    <div class="workflow-demo-header">
+                        <div class="workflow-demo-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                            </svg>
+                            工作流设计器
+                        </div>
+                        <div class="workflow-demo-actions">
+                            <button class="demo-run-btn" id="demoRunBtn">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                                全部运行
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="workflow-demo-body">
+                        <!-- Demo Sidebar -->
+                        <div class="demo-sidebar">
+                            <div class="demo-sidebar-title">步骤</div>
+                            <div class="demo-step" id="demoStep1" data-step="1">
+                                <div class="demo-step-icon import">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                </div>
+                                导入数据
+                            </div>
+                            <div class="demo-step" id="demoStep2" data-step="2">
+                                <div class="demo-step-icon transform">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="16 3 21 3 21 8"/>
+                                        <line x1="4" y1="20" x2="21" y2="3"/>
+                                        <polyline points="21 16 21 21 16 21"/>
+                                        <line x1="15" y1="15" x2="21" y2="21"/>
+                                        <line x1="4" y1="4" x2="9" y2="9"/>
+                                    </svg>
+                                </div>
+                                数据处理
+                            </div>
+                            <div class="demo-step" id="demoStep3" data-step="3">
+                                <div class="demo-step-icon analyze">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="18" y1="20" x2="18" y2="10"/>
+                                        <line x1="12" y1="20" x2="12" y2="4"/>
+                                        <line x1="6" y1="20" x2="6" y2="14"/>
+                                    </svg>
+                                </div>
+                                分析
+                            </div>
+                            <div class="demo-step drop-target" id="demoStep4" data-step="4" style="opacity: 0;">
+                                <div class="demo-step-icon export">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                导出
+                            </div>
+                            <div class="demo-add-step" id="demoAddStep">+ 添加步骤</div>
+                        </div>
+
+                        <!-- Demo Workspace -->
+                        <div class="demo-workspace">
+                            <div class="demo-workspace-title">脚本编辑器</div>
+                            <div class="demo-script-editor">
+                                <div class="script-editor-header">
+                                    <div class="script-tab active">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="16 18 22 12 16 6"/>
+                                            <polyline points="8 6 2 12 8 18"/>
+                                        </svg>
+                                        工作流.py
+                                    </div>
+                                </div>
+                                <div class="script-editor-content" id="scriptContent">
+                                    <div class="script-line" data-line="1">
+                                        <span class="line-number">1</span>
+                                        <span class="line-content"><span class="code-comment"># 自动生成的工作流脚本</span></span>
+                                    </div>
+                                    <div class="script-line" data-line="2">
+                                        <span class="line-number">2</span>
+                                        <span class="line-content"><span class="code-keyword">import</span> ArcRho <span class="code-keyword">as</span> arc</span>
+                                    </div>
+                                    <div class="script-line" data-line="3">
+                                        <span class="line-number">3</span>
+                                        <span class="line-content"></span>
+                                    </div>
+                                    <div class="script-line" data-line="4">
+                                        <span class="line-number">4</span>
+                                        <span class="line-content"><span class="code-variable">data</span> = arc.<span class="code-function">import_triangle</span>(<span class="code-string">"赔付数据.csv"</span>)</span>
+                                    </div>
+                                    <div class="script-line" data-line="5">
+                                        <span class="line-number">5</span>
+                                        <span class="line-content"><span class="code-variable">data</span> = arc.<span class="code-function">transform</span>(data, method=<span class="code-string">"incr_to_cum"</span>)</span>
+                                    </div>
+                                    <div class="script-line" data-line="6">
+                                        <span class="line-number">6</span>
+                                        <span class="line-content"><span class="code-variable">result</span> = arc.<span class="code-function">chain_ladder</span>(data)</span>
+                                    </div>
+                                    <div class="script-line" data-line="7">
+                                        <span class="line-number">7</span>
+                                        <span class="line-content">arc.<span class="code-function">export</span>(result, <span class="code-string">"链梯法估计结果.xlsx"</span>)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="demo-output">
+                                <div class="output-header">
+                                    <span class="output-title">输出</span>
+                                    <span class="output-status" id="outputStatus">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                        </svg>
+                                        就绪
+                                    </span>
+                                </div>
+                                <div class="output-content" id="outputContent">$ 工作流已在 1.24 秒内完成——已导出 8 个事故年度至 准备金结果.xlsx</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Animated Cursor -->
+                    <div class="demo-cursor" id="demoCursor">
+                        <svg viewBox="0 0 24 24" fill="white" stroke="#333" stroke-width="1">
+                            <path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.48 0 .72-.58.38-.92L6.35 2.85a.5.5 0 0 0-.85.36Z"/>
+                        </svg>
+                    </div>
+
+                    <!-- Progress dots -->
+                    <div class="workflow-progress">
+                        <div class="progress-dot" id="progDot1"></div>
+                        <div class="progress-dot" id="progDot2"></div>
+                        <div class="progress-dot" id="progDot3"></div>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="workflow-auto-info animate-on-scroll animate-delay-1">
+                    <div class="auto-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                        自动化引擎
+                    </div>
+                    <h3>可视化工作流构建器 + 强大脚本能力</h3>
+                    <p>先以可视化方式搭建复杂精算工作流，再用内置脚本引擎精细调整，一键即可运行。</p>
+
+                    <ul class="workflow-auto-features">
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            拖拽式工作流设计器
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            内置脚本引擎
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            一键执行并实时输出
+                        </li>
+                        <li>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            可复用工作流模板
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Workflow Section -->
+    <section class="workflow" id="workflow">
+        <div class="workflow-bg-pattern"></div>
+        <div class="workflow-container">
+            <div class="section-header animate-on-scroll">
+                <p class="section-label">使用流程</p>
+                <h2 class="section-title">四步完成：从数据到结果</h2>
+                <p class="section-subtitle">流程精简，能够自然融入你现有的工作方式。</p>
+            </div>
+            <div class="workflow-steps">
+                <div class="workflow-step animate-on-scroll animate-delay-1">
+                    <div class="step-number">1</div>
+                    <h4>导入数据</h4>
+                    <p>从数据库或逗号分隔文本文件加载三角数据，并自动完成数据转换与校验。</p>
+                </div>
+                <div class="workflow-step animate-on-scroll animate-delay-2">
+                    <div class="step-number">2</div>
+                    <h4>分析</h4>
+                    <p>使用可定制的确定性或随机模型预测终极赔款。</p>
+                </div>
+                <div class="workflow-step animate-on-scroll animate-delay-3">
+                    <div class="step-number">3</div>
+                    <h4>文档</h4>
+                    <p>对全部输入与假设进行自动检查与校验。</p>
+                </div>
+                <div class="workflow-step animate-on-scroll animate-delay-4">
+                    <div class="step-number">4</div>
+                    <h4>报告</h4>
+                    <p>结果可回写至电子表格，或生成可直接汇报的输出。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 价值优势 Section -->
+    <section class="benefits" id="benefits">
+        <div class="benefits-container">
+            <div class="benefits-content">
+                <div class="section-header animate-on-scroll" style="text-align: left;">
+                    <p class="section-label">为什么选择 ArcRho</p>
+                    <h2 class="section-title">为真实精算工作而生</h2>
+                </div>
+                <ul class="benefits-list">
+                    <li class="animate-on-scroll animate-delay-1">
+                        <div class="benefit-check">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>减少手工错误</h4>
+                            <p>自动化计算可减少表格作业中常见的复制粘贴失误与公式错误。</p>
+                        </div>
+                    </li>
+                    <li class="animate-on-scroll animate-delay-2">
+                        <div class="benefit-check">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>审计就绪文档</h4>
+                            <p>假设、选择与计算过程全链路可追溯，便于监管复核与审计。</p>
+                        </div>
+                    </li>
+                    <li class="animate-on-scroll animate-delay-3">
+                        <div class="benefit-check">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>方法灵活</h4>
+                            <p>支持链梯法、伯恩胡特-弗格森法及自定义方法，适配公司标准。</p>
+                        </div>
+                    </li>
+                    <li class="animate-on-scroll animate-delay-4">
+                        <div class="benefit-check">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>与现有工具无缝协同</h4>
+                            <p>与电子表格无缝集成，无需放弃现有模板与流程。</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="benefits-visual animate-on-scroll">
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="80">0%</div>
+                        <div class="stat-label">更少数据准备时间</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="100">0%</div>
+                        <div class="stat-label">计算可追溯性</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="0" data-static="true">0</div>
+                        <div class="stat-label">云端依赖</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-target="1" data-static="true">1</div>
+                        <div class="stat-label">一体化工作流</div>
+                    </div>
+                </div>
+                <div class="line-decoration">
+                    <svg viewBox="0 0 300 60" preserveAspectRatio="none">
+                        <path d="M0,30 Q75,10 150,30 T300,30" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta" id="contact">
+        <div class="cta-container animate-on-scroll">
+            <h2>准备好优化你的准备金评估流程了吗？</h2>
+            <p>看看 ArcRho 如何重塑你的精算工作流。立即预约专属演示。</p>
+            <div class="cta-buttons">
+                <a href="mailto:xw2781@gmail.com?subject=ArcRho Demo Request" class="btn-primary">
+                    预约演示
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <a href="#features" class="btn-secondary">浏览功能</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-logo">
+                <div class="logo-icon" aria-label="ArcRho 标识">
+                    <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+                        <rect x="3" y="3" width="5" height="5" rx="1.2"></rect>
+                        <rect x="10" y="3" width="5" height="5" rx="1.2"></rect>
+                        <rect x="17" y="3" width="5" height="5" rx="1.2"></rect>
+                        <rect x="3" y="10" width="5" height="5" rx="1.2"></rect>
+                        <rect x="10" y="10" width="5" height="5" rx="1.2"></rect>
+                        <rect x="3" y="17" width="5" height="5" rx="1.2"></rect>
+                    </svg>
+                </div>
+                ArcRho
+            </div>
+            <p>&copy; 2026 ArcRho - ArcRay 平台。保留所有权利。</p>
+        </div>
+    </footer>
+
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Scroll-triggered animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+
+                    // Trigger counter animation for stat numbers
+                    if (entry.target.classList.contains('benefits-visual')) {
+                        animateCounters();
+                    }
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.animate-on-scroll').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Counter animation
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-number');
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const isStatic = counter.getAttribute('data-static') === 'true';
+                const duration = 2000;
+                const start = performance.now();
+
+                if (isStatic) {
+                    counter.textContent = target;
+                    counter.classList.add('counting');
+                    return;
+                }
+
+                function update(currentTime) {
+                    const elapsed = currentTime - start;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+                    const current = Math.floor(easeOut * target);
+                    counter.textContent = current + '%';
+
+                    if (progress < 1) {
+                        requestAnimationFrame(update);
+                    } else {
+                        counter.classList.add('counting');
+                    }
+                }
+
+                requestAnimationFrame(update);
+            });
+        }
+
+        // Add hover effects to triangle cells
+        document.querySelectorAll('.triangle-cell:not(.header)').forEach(cell => {
+            cell.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.08)';
+            });
+            cell.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+                // AI Visualization Demo Animation
+        const ai提示词Preview = document.getElementById('ai提示词Preview');
+        const aiApplyStyleBtn = document.getElementById('aiApplyStyleBtn');
+        const ai提示词Badge = document.getElementById('ai提示词Badge');
+        const aiChartTitle = document.getElementById('aiChartTitle');
+        const aiStyleNote = document.getElementById('aiStyleNote');
+        const aiStyleTransition = document.getElementById('aiStyleTransition');
+        const aiStyleChartByCol = document.getElementById('aiStyleChartByCol');
+        const aiStyleChartByRow = document.getElementById('aiStyleChartByRow');
+        const aiDemoLegend = document.getElementById('aiDemoLegend');
+
+        if (ai提示词Preview && aiApplyStyleBtn && aiStyleChartByCol && aiStyleChartByRow && aiDemoLegend) {
+            const aiStylePresets = [
+                {
+                    mode: 'byCol',
+                    badge: '样式 1',
+                    title: '事故年度曲线',
+                    note: '图表模板已保存：按列样式',
+                    prompt: '请使用按列样式：以发展期为分组曲线，X 轴展示事故年度。',
+                    legend: [
+                        { label: '12', color: '#0ea5e9' },
+                        { label: '24', color: '#8b5cf6' },
+                        { label: '36', color: '#22c55e' },
+                        { label: '48', color: '#f59e0b' }
+                    ]
+                },
+                {
+                    mode: 'byRow',
+                    badge: '样式 2',
+                    title: '发展曲线',
+                    note: '图表模板已更新：按行样式',
+                    prompt: '切换为按行样式：每条曲线代表一个事故年度，X 轴展示发展期。',
+                    legend: [
+                        { label: '2019', color: '#6366f1' },
+                        { label: '2020', color: '#0ea5e9' },
+                        { label: '2021', color: '#22c55e' },
+                        { label: '2022', color: '#f97316' }
+                    ]
+                }
+            ];
+
+            let aiStyleIndex = 0;
+            let aiAutoPlay = false;
+            let aiCycleTimer = null;
+            let aiCycleToken = 0;
+
+            function sleep(ms) {
+                return new Promise((resolve) => setTimeout(resolve, ms));
+            }
+
+            function set提示词Text(text, withCaret = true) {
+                ai提示词Preview.textContent = text;
+                if (!withCaret) return;
+                const caret = document.createElement('span');
+                caret.className = 'ai-prompt-caret';
+                ai提示词Preview.appendChild(caret);
+            }
+
+            function renderLegend(items) {
+                aiDemoLegend.innerHTML = '';
+                items.forEach((item) => {
+                    const row = document.createElement('div');
+                    row.className = 'legendItem';
+
+                    const swatch = document.createElement('span');
+                    swatch.className = 'legendSwatch';
+                    swatch.style.background = item.color;
+
+                    const label = document.createElement('span');
+                    label.className = 'legendLabel';
+                    label.textContent = item.label;
+
+                    row.appendChild(swatch);
+                    row.appendChild(label);
+                    aiDemoLegend.appendChild(row);
+                });
+            }
+
+            function triggerStyleTransition() {
+                aiStyleTransition.classList.remove('run');
+                void aiStyleTransition.offsetWidth;
+                aiStyleTransition.classList.add('run');
+            }
+
+            function applyStyle(index, opts = {}) {
+                const preset = aiStylePresets[index];
+                aiStyleIndex = index;
+
+                if (opts.update提示词 !== false) {
+                    set提示词Text(preset.prompt, false);
+                }
+
+                if (ai提示词Badge) ai提示词Badge.textContent = preset.badge;
+                if (aiChartTitle) aiChartTitle.textContent = preset.title;
+                if (aiStyleNote) aiStyleNote.textContent = preset.note;
+
+                aiStyleChartByCol.classList.remove('is-active');
+                aiStyleChartByRow.classList.remove('is-active');
+                const targetChart = preset.mode === 'byCol' ? aiStyleChartByCol : aiStyleChartByRow;
+                void targetChart.offsetWidth;
+                targetChart.classList.add('is-active');
+
+                renderLegend(preset.legend);
+
+                if (opts.transition !== false) {
+                    triggerStyleTransition();
+                }
+            }
+
+            function getVariableTypingDelay(text, charIndex) {
+                const ch = text[charIndex] || '';
+                const progress = (charIndex + 1) / Math.max(text.length, 1);
+
+                // Oscillate speed to create visible fast/slow rhythm.
+                const wave = Math.sin(progress * Math.PI * 5);
+                let delay = wave >= 0
+                    ? 8 + Math.random() * 10
+                    : 18 + Math.random() * 16;
+
+                // Natural pauses around spaces/punctuation.
+                if (ch === ' ') delay += 18 + Math.random() * 14;
+                if (',.;:!?'.includes(ch)) delay += 80 + Math.random() * 90;
+
+                // Rare "thinking" micro-pause for human-like cadence.
+                if (charIndex > 3 && Math.random() < 0.06) {
+                    delay += 50 + Math.random() * 90;
+                }
+
+                // Slight slowdown near the end.
+                if (progress > 0.88) delay += 14 + Math.random() * 14;
+
+                return Math.round(delay);
+            }
+
+            async function type提示词Animated(text, token) {
+                for (let i = 1; i <= text.length; i += 1) {
+                    if (token !== aiCycleToken) return false;
+                    set提示词Text(text.slice(0, i), true);
+                    await sleep(getVariableTypingDelay(text, i - 1));
+                }
+                set提示词Text(text, false);
+                return token === aiCycleToken;
+            }
+
+            function queueNextCycle(delayMs = 0) {
+                if (!aiAutoPlay) return;
+                if (aiCycleTimer) clearTimeout(aiCycleTimer);
+                aiCycleTimer = setTimeout(() => {
+                    void runCycleStep();
+                }, delayMs);
+            }
+
+            async function runCycleStep() {
+                if (!aiAutoPlay) return;
+
+                const token = ++aiCycleToken;
+                const nextIndex = (aiStyleIndex + 1) % aiStylePresets.length;
+                const nextPreset = aiStylePresets[nextIndex];
+                const typed = await type提示词Animated(nextPreset.prompt, token);
+                if (!typed || !aiAutoPlay || token !== aiCycleToken) return;
+
+                aiApplyStyleBtn.classList.add('is-working');
+                await sleep(260);
+                if (!aiAutoPlay || token !== aiCycleToken) return;
+
+                applyStyle(nextIndex, { update提示词: false });
+                aiApplyStyleBtn.classList.remove('is-working');
+
+                queueNextCycle(2200);
+            }
+
+            function startAutoCycle() {
+                if (aiAutoPlay) return;
+                aiAutoPlay = true;
+                queueNextCycle(900);
+            }
+
+            function stopAutoCycle() {
+                aiAutoPlay = false;
+                aiCycleToken += 1;
+                if (aiCycleTimer) {
+                    clearTimeout(aiCycleTimer);
+                    aiCycleTimer = null;
+                }
+                aiApplyStyleBtn.classList.remove('is-working');
+            }
+
+            aiApplyStyleBtn.addEventListener('click', async () => {
+                const nextIndex = (aiStyleIndex + 1) % aiStylePresets.length;
+                const token = ++aiCycleToken;
+                if (aiCycleTimer) clearTimeout(aiCycleTimer);
+
+                const typed = await type提示词Animated(aiStylePresets[nextIndex].prompt, token);
+                if (!typed || token !== aiCycleToken) return;
+
+                aiApplyStyleBtn.classList.add('is-working');
+                await sleep(180);
+                if (token !== aiCycleToken) return;
+
+                applyStyle(nextIndex, { update提示词: false });
+                aiApplyStyleBtn.classList.remove('is-working');
+
+                if (aiAutoPlay) queueNextCycle(2400);
+            });
+
+            applyStyle(0, { transition: false, update提示词: true });
+
+            const aiVizSection = document.querySelector('.ai-viz');
+            if (aiVizSection) {
+                const aiVizObserver = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            startAutoCycle();
+                        } else {
+                            stopAutoCycle();
+                        }
+                    });
+                }, { threshold: 0.35 });
+
+                aiVizObserver.observe(aiVizSection);
+            }
+        }
+
+        // ========================================
+        // Stochastic Simulation Animation
+        // ========================================
+        const simPlayBtn = document.getElementById('simPlayBtn');
+        const simCounter = document.getElementById('simCounter');
+        const simChartSvg = document.getElementById('simChartSvg');
+        const distributionBars = document.getElementById('distributionBars');
+        const stat均值 = document.getElementById('stat均值');
+        const statP50 = document.getElementById('statP50');
+        const statStdDev = document.getElementById('statStdDev');
+        const statCV = document.getElementById('statCV');
+
+        let simRunning = false;
+        let simComplete = false;
+
+        // Generate lognormal distribution data
+        function generateLognormalData(numBars = 50) {
+            const bars = [];
+            const mu = 1.0; // log mean
+            const sigma = 0.25; // log standard deviation
+
+            for (let i = 0; i < numBars; i++) {
+                // X position maps to reserve amount (2M to 4M)
+                const x = 2 + (i / numBars) * 2; // 2M to 4M
+                // Lognormal PDF
+                const logx = Math.log(x);
+                const exponent = -Math.pow(logx - mu, 2) / (2 * sigma * sigma);
+                const pdf = (1 / (x * sigma * Math.sqrt(2 * Math.PI))) * Math.exp(exponent);
+                bars.push({
+                    x: 45 + (i * 8.5),
+                    height: pdf * 250, // Scale for visibility
+                    value: x
+                });
+            }
+            return bars;
+        }
+
+        // Create distribution bars SVG
+        function createDistributionBars(data) {
+            distributionBars.innerHTML = '';
+            data.forEach((bar, index) => {
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'distribution-bar');
+                rect.setAttribute('x', bar.x);
+                rect.setAttribute('y', 180 - bar.height);
+                rect.setAttribute('width', 7);
+                rect.setAttribute('height', bar.height);
+                rect.setAttribute('rx', 2);
+                rect.dataset.index = index;
+                distributionBars.appendChild(rect);
+            });
+        }
+
+        // Animate the simulation
+        async function runSimulation() {
+            if (simRunning) return;
+
+            simRunning = true;
+            simComplete = false;
+            simPlayBtn.classList.add('hidden');
+
+            // Reset stats
+            stat均值.textContent = '--';
+            statP50.textContent = '--';
+            statStdDev.textContent = '--';
+            statCV.textContent = '--';
+
+            // Hide percentile lines
+            document.querySelectorAll('.percentile-line, .percentile-label').forEach(el => {
+                el.classList.remove('visible');
+            });
+
+            // Generate distribution data
+            const data = generateLognormalData(50);
+            createDistributionBars(data);
+
+            // Hide all bars initially
+            const bars = distributionBars.querySelectorAll('.distribution-bar');
+            bars.forEach(bar => bar.classList.remove('visible'));
+
+            // Animate counter and bars
+            const totalSims = 10000;
+            const duration = 3000; // 3 seconds
+            const startTime = performance.now();
+
+            function animateSimulation(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+
+                // 更新 counter
+                const currentCount = Math.floor(easeOut * totalSims);
+                simCounter.textContent = currentCount.toLocaleString();
+
+                // Progressively reveal bars from center outward
+                const centerIndex = Math.floor(bars.length / 2);
+                const revealRadius = Math.floor(easeOut * (bars.length / 2 + 5));
+
+                bars.forEach((bar, index) => {
+                    const distFromCenter = Math.abs(index - centerIndex);
+                    if (distFromCenter <= revealRadius) {
+                        bar.classList.add('visible');
+                    }
+                });
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateSimulation);
+                } else {
+                    // Animation complete - show all bars
+                    bars.forEach(bar => bar.classList.add('visible'));
+
+                    // Show percentile lines with delay
+                    setTimeout(() => {
+                        document.getElementById('p10Line').classList.add('visible');
+                        document.getElementById('p10Label').classList.add('visible');
+                    }, 200);
+
+                    setTimeout(() => {
+                        document.getElementById('p50Line').classList.add('visible');
+                        document.getElementById('p50Label').classList.add('visible');
+                    }, 400);
+
+                    setTimeout(() => {
+                        document.getElementById('p90Line').classList.add('visible');
+                        document.getElementById('p90Label').classList.add('visible');
+                    }, 600);
+
+                    // Show stats
+                    setTimeout(() => {
+                        animateStatValue(stat均值, 2.87, 'M');
+                        animateStatValue(statP50, 2.72, 'M');
+                        animateStatValue(statStdDev, 0.68, 'M');
+                        animateStatValue(statCV, 23.7, '%');
+                    }, 800);
+
+                    setTimeout(() => {
+                        simRunning = false;
+                        simComplete = true;
+                        simPlayBtn.classList.remove('hidden');
+                    }, 2000);
+                }
+            }
+
+            requestAnimationFrame(animateSimulation);
+        }
+
+        // Animate stat value counting up
+        function animateStatValue(element, targetValue, suffix) {
+            const duration = 800;
+            const startTime = performance.now();
+            const startValue = 0;
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+
+                const currentValue = startValue + (targetValue - startValue) * easeOut;
+                element.textContent = currentValue.toFixed(2) + suffix;
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Reset simulation
+        function resetSimulation() {
+            simCounter.textContent = '0';
+            stat均值.textContent = '--';
+            statP50.textContent = '--';
+            statStdDev.textContent = '--';
+            statCV.textContent = '--';
+
+            distributionBars.innerHTML = '';
+
+            document.querySelectorAll('.percentile-line, .percentile-label').forEach(el => {
+                el.classList.remove('visible');
+            });
+
+            simPlayBtn.classList.remove('hidden');
+            simComplete = false;
+        }
+
+        // Play button click
+        simPlayBtn.addEventListener('click', () => {
+            if (simComplete) {
+                resetSimulation();
+                setTimeout(runSimulation, 300);
+            } else {
+                runSimulation();
+            }
+        });
+
+        // Auto-run when section is visible
+        const stochasticSection = document.querySelector('.stochastic');
+
+        const stochasticObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // User scrolled into view - start animation
+                    if (!simRunning) {
+                        resetSimulation();
+                        setTimeout(runSimulation, 500);
+                    }
+                } else {
+                    // User scrolled away - reset for next time
+                    if (!simRunning) {
+                        resetSimulation();
+                    }
+                }
+            });
+        }, { threshold: 0.4 });
+
+        stochasticObserver.observe(stochasticSection);
+
+        // ========================================
+        // 工作流自动化 Animation
+        // ========================================
+        const workflowDemo = document.getElementById('workflowDemo');
+        const demoCursor = document.getElementById('demoCursor');
+        const demoRunBtn = document.getElementById('demoRunBtn');
+        const scriptContent = document.getElementById('scriptContent');
+        const outputStatus = document.getElementById('outputStatus');
+        const outputContent = document.getElementById('outputContent');
+        const demoStep4 = document.getElementById('demoStep4');
+        const demoAddStep = document.getElementById('demoAddStep');
+        const progDots = [
+            document.getElementById('progDot1'),
+            document.getElementById('progDot2'),
+            document.getElementById('progDot3')
+        ];
+
+        let wfAnimationRunning = false;
+        let wfAnimationPhase = 0;
+
+        // Animate cursor to element
+        function animateCursorTo(targetEl, duration = 600) {
+            return new Promise(resolve => {
+                const demoRect = workflowDemo.getBoundingClientRect();
+                const targetRect = targetEl.getBoundingClientRect();
+
+                const targetX = targetRect.left - demoRect.left + targetRect.width / 2;
+                const targetY = targetRect.top - demoRect.top + targetRect.height / 2;
+
+                const cursorStyle = window.getComputedStyle(demoCursor);
+                const startX = parseFloat(cursorStyle.left) || 200;
+                const startY = parseFloat(cursorStyle.top) || 200;
+
+                demoCursor.classList.add('visible');
+
+                const startTime = performance.now();
+
+                function animate(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+
+                    const currentX = startX + (targetX - startX) * easeOut;
+                    const currentY = startY + (targetY - startY) * easeOut;
+
+                    demoCursor.style.left = currentX + 'px';
+                    demoCursor.style.top = currentY + 'px';
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+
+                requestAnimationFrame(animate);
+            });
+        }
+
+        // Show script lines with typing effect
+        function showScriptLines() {
+            return new Promise(resolve => {
+                const lines = scriptContent.querySelectorAll('.script-line');
+                lines.forEach((line, index) => {
+                    setTimeout(() => {
+                        line.classList.add('visible');
+                        if (index === lines.length - 1) {
+                            setTimeout(resolve, 300);
+                        }
+                    }, index * 150);
+                });
+            });
+        }
+
+        // Hide all script lines
+        function hideScriptLines() {
+            const lines = scriptContent.querySelectorAll('.script-line');
+            lines.forEach(line => line.classList.remove('visible'));
+        }
+
+        // Set progress dot state
+        function setProgressDot(index, state) {
+            progDots.forEach((dot, i) => {
+                dot.classList.remove('active', 'complete');
+                if (i < index) dot.classList.add('complete');
+                else if (i === index) dot.classList.add('active');
+            });
+        }
+
+        // Run button animation
+        function animateRunButton() {
+            return new Promise(resolve => {
+                demoRunBtn.classList.add('running');
+                demoRunBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    运行中...
+                `;
+
+                outputStatus.classList.remove('success');
+                outputStatus.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    运行中...
+                `;
+                outputContent.classList.remove('visible');
+
+                setTimeout(() => {
+                    demoRunBtn.classList.remove('running');
+                    demoRunBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        全部运行
+                    `;
+
+                    outputStatus.classList.add('success');
+                    outputStatus.innerHTML = `
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        成功
+                    `;
+                    outputContent.classList.add('visible');
+
+                    resolve();
+                }, 2000);
+            });
+        }
+
+        // Reset workflow demo
+        function resetWorkflowDemo() {
+            demoCursor.classList.remove('visible');
+            demoCursor.style.left = '200px';
+            demoCursor.style.top = '200px';
+
+            hideScriptLines();
+
+            document.querySelectorAll('.demo-step').forEach(step => {
+                step.classList.remove('active', 'dragging', 'drop-target');
+            });
+            demoStep4.style.opacity = '0';
+            demoStep4.classList.add('drop-target');
+
+            outputStatus.classList.remove('success');
+            outputStatus.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                </svg>
+                就绪
+            `;
+            outputContent.classList.remove('visible');
+
+            demoRunBtn.classList.remove('running');
+            demoRunBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                全部运行
+            `;
+
+            progDots.forEach(dot => dot.classList.remove('active', 'complete'));
+        }
+
+        // Phase 1: Drag and drop animation
+        async function runDragDropPhase() {
+            setProgressDot(0, 'active');
+
+            // Move cursor to add step button
+            await animateCursorTo(demoAddStep, 500);
+            await new Promise(r => setTimeout(r, 300));
+
+            // Show the export step with drop target style
+            demoStep4.style.opacity = '1';
+            demoStep4.classList.add('drop-target');
+
+            await new Promise(r => setTimeout(r, 400));
+
+            // Move cursor to step 4 and "drop" it
+            await animateCursorTo(demoStep4, 400);
+            await new Promise(r => setTimeout(r, 200));
+
+            demoStep4.classList.remove('drop-target');
+            demoStep4.classList.add('active');
+
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Phase 2: Script typing animation
+        async function runScriptPhase() {
+            setProgressDot(1, 'active');
+
+            // Activate steps in sequence
+            const steps = document.querySelectorAll('.demo-step:not(#demoStep4)');
+            for (let i = 0; i < steps.length; i++) {
+                steps[i].classList.add('active');
+                await new Promise(r => setTimeout(r, 200));
+            }
+
+            // Show script lines
+            await showScriptLines();
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Phase 3: Run animation
+        async function runExecutePhase() {
+            setProgressDot(2, 'active');
+
+            // Move cursor to run button
+            await animateCursorTo(demoRunBtn, 500);
+            await new Promise(r => setTimeout(r, 200));
+
+            // Run the workflow
+            await animateRunButton();
+
+            setProgressDot(3, 'complete');
+            await new Promise(r => setTimeout(r, 3000)); // Stay for 3 seconds
+        }
+
+        // Main workflow animation
+        async function runWorkflowAnimation() {
+            if (wfAnimationRunning) return;
+            wfAnimationRunning = true;
+
+            resetWorkflowDemo();
+            await new Promise(r => setTimeout(r, 500));
+
+            await runDragDropPhase();
+            await runScriptPhase();
+            await runExecutePhase();
+
+            wfAnimationRunning = false;
+        }
+
+        // Click handler for run button
+        demoRunBtn.addEventListener('click', () => {
+            if (!wfAnimationRunning) {
+                runWorkflowAnimation();
+            }
+        });
+
+        // Intersection observer for workflow section
+        const workflowAutoSection = document.querySelector('.workflow-auto');
+
+        const workflowAutoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (!wfAnimationRunning) {
+                        resetWorkflowDemo();
+                        setTimeout(runWorkflowAnimation, 500);
+                    }
+                } else {
+                    if (!wfAnimationRunning) {
+                        resetWorkflowDemo();
+                    }
+                }
+            });
+        }, { threshold: 0.4 });
+
+        workflowAutoObserver.observe(workflowAutoSection);
+
+        // Add CSS for spin animation
+        const spinStyle = document.createElement('style');
+        spinStyle.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(spinStyle);
+    </script>
+</body>
+</html>
