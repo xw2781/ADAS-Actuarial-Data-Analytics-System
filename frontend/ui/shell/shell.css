@@ -604,9 +604,14 @@ button { padding: 6px 10px; cursor:pointer; }
    content height first, so a tall page inside it (Home with many groups) inflated the request and
    the squeeze came back out of the chrome above. A zero basis asks for nothing and simply takes
    what the fixed rows leave, which is what this row has always meant to do. */
+/* The status bar draws the seam between the page and itself with its own top border, so the
+   content frame stops short of it. Both borders drew a hairline before, and because the status
+   bar is 10px wider on each side than the content, the pair read as one thick line with thin
+   ends. */
 .content {
   border:1px solid var(--border);
   border-top: 0;
+  border-bottom: 0;
   border-radius: 0;
   flex: 1 1 0;
   min-height: 0;

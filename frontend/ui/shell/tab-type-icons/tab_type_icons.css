@@ -38,8 +38,8 @@
   mask-image: url("project_instance.svg?v=20260821a");
 }
 .tabTypeIcon[data-tab-type="project_settings"] {
-  -webkit-mask-image: url("project_settings.svg?v=20260821a");
-  mask-image: url("project_settings.svg?v=20260821a");
+  -webkit-mask-image: url("project_settings.svg?v=20260908e");
+  mask-image: url("project_settings.svg?v=20260908e");
 }
 .tabTypeIcon[data-tab-type="file_explorer"] {
   -webkit-mask-image: url("file_explorer.svg?v=20260821a");

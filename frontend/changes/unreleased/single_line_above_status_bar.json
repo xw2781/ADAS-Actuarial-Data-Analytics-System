@@ -1,0 +1,9 @@
+{
+  "type": "fix",
+  "scope": "shell",
+  "audience": "user",
+  "summary": "The line above the status bar is a single hairline again instead of a thicker double line across the middle of the window.",
+  "details": [
+    "Fixed the same way in the main ArcRho window and in Arcode."
+  ]
+}

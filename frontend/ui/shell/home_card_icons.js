@@ -4,7 +4,7 @@
 
 const ICON_PATHS = {
   files: '<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><path d="M7 11h10M7 14h7"></path>',
-  project: '<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"></path><circle cx="16.5" cy="13" r="2"></circle><path d="M16.5 10v1"></path><path d="M16.5 15v1"></path><path d="M19.1 11.5l-.9.5"></path><path d="M14.8 14l-.9.5"></path>',
+  project: '<rect x="3.3" y="3.3" width="7.5" height="7.5" rx="1.8"></rect><rect x="13.2" y="3.3" width="7.5" height="7.5" rx="1.8"></rect><rect x="3.3" y="13.2" width="7.5" height="7.5" rx="1.8"></rect><rect x="13.2" y="13.2" width="7.5" height="7.5" rx="1.8"></rect>',
   history: '<path d="M4 12a8 8 0 1 0 2.3-5.7"></path><path d="M4 5v5h5"></path><path d="M12 8v5l3 2"></path>',
   workflow: '<rect x="3" y="4" width="6" height="5" rx="1.2"></rect><rect x="15" y="4" width="6" height="5" rx="1.2"></rect><rect x="9" y="15" width="6" height="5" rx="1.2"></rect><path d="M9 6.5h6"></path><path d="M6 9v3.5h6V15"></path><path d="M18 9v3.5h-6"></path>',
   scripting: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 9l3 3-3 3"></path><path d="M12 15h5"></path>',

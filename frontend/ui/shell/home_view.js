@@ -1,6 +1,6 @@
 import { shell } from "./shell_context.js?v=20260510a";
-import { homeCardIcon } from "./home_card_icons.js?v=20260808a";
-import { initHomeShortcuts } from "./home_shortcuts_view.js?v=20260810a";
+import { homeCardIcon } from "./home_card_icons.js?v=20260908b";
+import { initHomeShortcuts } from "./home_shortcuts_view.js?v=20260908b";
 
 let homeWired = false;
 let cachedHomeBrandName = null;

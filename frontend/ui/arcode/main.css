@@ -280,6 +280,10 @@ body.win10-borders::after {
   color: #111827;
 }
 
+/* The status bar draws the seam between the workspace and itself with its own top border, so the
+   workspace frame stops short of it. Both borders drew a hairline before, and because the status
+   bar is 10px wider on each side than the workspace, the pair read as one thick line with thin
+   ends. */
 #arcodeMain {
   position: relative;
   min-height: 0;
@@ -287,6 +291,7 @@ body.win10-borders::after {
   background: #ffffff;
   border: 1px solid var(--arcode-border);
   border-top: 0;
+  border-bottom: 0;
 }
 
 #arcodeHome {

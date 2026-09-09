@@ -1,0 +1,10 @@
+{
+  "type": "improvement",
+  "scope": "shell",
+  "audience": "user",
+  "summary": "The Project Explorer tab now uses two overlapping project tiles to represent a collection of projects.",
+  "details": [
+    "The tab icon follows the same monochrome stroke style as the other tabs; the Home card retains its four project tiles.",
+    "It no longer reads like the workspace folder or the project window beside it."
+  ]
+}
