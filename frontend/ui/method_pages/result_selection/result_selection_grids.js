@@ -1333,7 +1333,7 @@
                 pct.className = "rsWeightPercent";
                 pct.textContent = fmtEffectiveWeight(weightValue, details);
                 pct.title = "Read-only effective row weight";
-                copyValue = pct.textContent;
+                copyValue = Number.isFinite(weightValue) ? String(weightValue) : "";
                 applyWeightValueClass(td, weightValue);
                 td.appendChild(pct);
               } else {
@@ -1349,7 +1349,7 @@
                 const weightDisplay = document.createElement("span");
                 weightDisplay.className = "rsWeightValue";
                 weightDisplay.textContent = fmtWeightValue(weightValue);
-                copyValue = fmtWeightValue(weightValue);
+                copyValue = String(weightValue);
                 td.appendChild(weightDisplay);
               }
               tr.appendChild(wireMethodCell(td, column, colIndex, r, copyValue));
@@ -1373,7 +1373,7 @@
               const ratioValue = basis && rowUltimateValue !== null ? rowUltimateValue / basis : null;
               const rcell = bodyCell(fmtRatio(ratioValue));
               rcell.className = "rsRatioCell";
-              tr.appendChild(wireMethodCell(rcell, column, colIndex, r, fmtRatio(ratioValue)));
+              tr.appendChild(wireMethodCell(rcell, column, colIndex, r, ratioValue === null ? "" : String(ratioValue)));
             } else if (column.type === "spacer") {
               tr.appendChild(bodyCell("", "rsSectionSpacerCell"));
             }
@@ -1394,13 +1394,13 @@
               { rowToggleColumnCount: columns.length }
             ));
           } else if (column.type === "source") {
-            const totalValue = fmtNumber(totals.source[column.sourceIndex]);
+            const totalValue = totals.source[column.sourceIndex];
             totalRow.appendChild(wireMethodCell(
-              bodyCell(totalValue, "rsSourceCell"),
+              bodyCell(fmtNumber(totalValue), "rsSourceCell"),
               column,
               colIndex,
               totalRowIndex,
-              totalValue
+              String(totalValue)
             ));
           } else if (column.type === "weight") {
             totalRow.appendChild(wireMethodCell(
@@ -1411,21 +1411,18 @@
               ""
             ));
           } else if (column.type === "ultimate") {
-            const totalUltimateValue = fmtNumber(totals.ultimate);
-            const totalUltimate = bodyCell(totalUltimateValue);
+            const totalUltimate = bodyCell(fmtNumber(totals.ultimate));
             totalUltimate.className = "rsUltimateCell";
-            totalRow.appendChild(wireMethodCell(totalUltimate, column, colIndex, totalRowIndex, totalUltimateValue));
+            totalRow.appendChild(wireMethodCell(totalUltimate, column, colIndex, totalRowIndex, String(totals.ultimate)));
           } else if (column.type === "reserve") {
-            const totalReserveValue = fmtNumber(totals.reserve);
-            const totalReserve = bodyCell(totalReserveValue);
+            const totalReserve = bodyCell(fmtNumber(totals.reserve));
             totalReserve.className = "rsReserveCell";
-            totalRow.appendChild(wireMethodCell(totalReserve, column, colIndex, totalRowIndex, totalReserveValue));
+            totalRow.appendChild(wireMethodCell(totalReserve, column, colIndex, totalRowIndex, String(totals.reserve)));
           } else if (column.type === "ratio") {
             const ratio = totals.basis > 0 ? totals.ultimate / totals.basis : null;
-            const ratioValue = fmtRatio(ratio);
-            const ratioCell = bodyCell(ratioValue);
+            const ratioCell = bodyCell(fmtRatio(ratio));
             ratioCell.className = "rsRatioCell";
-            totalRow.appendChild(wireMethodCell(ratioCell, column, colIndex, totalRowIndex, ratioValue));
+            totalRow.appendChild(wireMethodCell(ratioCell, column, colIndex, totalRowIndex, ratio === null ? "" : String(ratio)));
           } else if (column.type === "spacer") {
             totalRow.appendChild(bodyCell("", "rsSectionSpacerCell"));
           }
@@ -1519,7 +1516,7 @@
               const ratioValue = basis && ultimateValue !== null ? ultimateValue / basis : null;
               const cell = bodyCell(fmtRatio(ratioValue));
               cell.className = "rsRatioCell";
-              tr.appendChild(wireResultsCell(cell, column, colIndex, r, fmtRatio(ratioValue)));
+              tr.appendChild(wireResultsCell(cell, column, colIndex, r, ratioValue === null ? "" : String(ratioValue)));
             } else if (column.type === "spacer") {
               tr.appendChild(bodyCell("", "rsSectionSpacerCell"));
             }
@@ -1541,30 +1538,27 @@
               { rowToggleColumnCount: columns.length }
             ));
           } else if (column.type === "source") {
-            const value = fmtNumber(totals.source[column.sourceIndex]);
+            const value = totals.source[column.sourceIndex];
             totalRow.appendChild(wireResultsCell(
-              bodyCell(value, "rsSourceCell"),
+              bodyCell(fmtNumber(value), "rsSourceCell"),
               column,
               colIndex,
               totalRowIndex,
-              value
+              String(value)
             ));
           } else if (column.type === "ultimate") {
-            const value = fmtNumber(totals.ultimate);
-            const cell = bodyCell(value);
+            const cell = bodyCell(fmtNumber(totals.ultimate));
             cell.className = "rsUltimateCell";
-            totalRow.appendChild(wireResultsCell(cell, column, colIndex, totalRowIndex, value));
+            totalRow.appendChild(wireResultsCell(cell, column, colIndex, totalRowIndex, String(totals.ultimate)));
           } else if (column.type === "reserve") {
-            const value = fmtNumber(totals.reserve);
-            const cell = bodyCell(value);
+            const cell = bodyCell(fmtNumber(totals.reserve));
             cell.className = "rsReserveCell";
-            totalRow.appendChild(wireResultsCell(cell, column, colIndex, totalRowIndex, value));
+            totalRow.appendChild(wireResultsCell(cell, column, colIndex, totalRowIndex, String(totals.reserve)));
           } else if (column.type === "ratio") {
             const ratio = totals.basis > 0 ? totals.ultimate / totals.basis : null;
-            const value = fmtRatio(ratio);
-            const cell = bodyCell(value);
+            const cell = bodyCell(fmtRatio(ratio));
             cell.className = "rsRatioCell";
-            totalRow.appendChild(wireResultsCell(cell, column, colIndex, totalRowIndex, value));
+            totalRow.appendChild(wireResultsCell(cell, column, colIndex, totalRowIndex, ratio === null ? "" : String(ratio)));
           } else if (column.type === "spacer") {
             totalRow.appendChild(bodyCell("", "rsSectionSpacerCell"));
           }

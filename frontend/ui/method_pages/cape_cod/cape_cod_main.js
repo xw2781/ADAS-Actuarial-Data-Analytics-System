@@ -932,44 +932,53 @@ function methodColumnCount() {
   return methodColumns().length;
 }
 
-function methodCellDisplay(column, rowIndex, count = rowCount()) {
+// The figure a method cell holds, unrounded; a copy takes this, the text
+// shows `methodCellDisplay`.
+function methodCellValue(column, rowIndex, count = rowCount()) {
   const derived = state.derived;
   if (rowIndex === count) {
     if (column.type === "origin") return "Total";
-    if (column.type === "latest") return displayNumber(sumMethodValues(state.latestValues));
-    if (column.type === "exposure") return displayNumber(sumMethodValues(state.exposureValues));
-    if (column.type === "trendedLatest") return displayNumber(sumMethodValues(derived.trendedLatestValues));
-    if (column.type === "developedExposure") return displayNumber(sumMethodValues(derived.developedExposureValues));
-    if (column.type === "futureExposure") return displayNumber(sumMethodValues(derived.futureExposureValues));
-    if (column.type === "futureLatest") return displayNumber(sumMethodValues(derived.futureLatestValues));
-    if (column.type === "ultimate") return displayNumber(sumMethodValues(derived.capeCodUltimate));
-    if (column.type === "trendedDevelopedRatio") {
-      return displayRatio(totalRatio(derived.trendedLatestValues, derived.developedExposureValues));
-    }
-    if (column.type === "detrendedExpectedRatio") {
-      return displayRatio(totalRatio(derived.futureLatestValues, derived.futureExposureValues));
-    }
-    if (column.type === "ultimateRatio") {
-      return displayRatio(totalRatio(derived.capeCodUltimate, state.exposureValues));
-    }
-    return "";
+    if (column.type === "latest") return sumMethodValues(state.latestValues);
+    if (column.type === "exposure") return sumMethodValues(state.exposureValues);
+    if (column.type === "trendedLatest") return sumMethodValues(derived.trendedLatestValues);
+    if (column.type === "developedExposure") return sumMethodValues(derived.developedExposureValues);
+    if (column.type === "futureExposure") return sumMethodValues(derived.futureExposureValues);
+    if (column.type === "futureLatest") return sumMethodValues(derived.futureLatestValues);
+    if (column.type === "ultimate") return sumMethodValues(derived.capeCodUltimate);
+    if (column.type === "trendedDevelopedRatio") return totalRatio(derived.trendedLatestValues, derived.developedExposureValues);
+    if (column.type === "detrendedExpectedRatio") return totalRatio(derived.futureLatestValues, derived.futureExposureValues);
+    if (column.type === "ultimateRatio") return totalRatio(derived.capeCodUltimate, state.exposureValues);
+    return null;
   }
   if (column.type === "origin") return originLabel(rowIndex);
-  if (column.type === "latest") return displayNumber(state.latestValues[rowIndex]);
-  if (column.type === "exposure") return displayNumber(state.exposureValues[rowIndex]);
-  if (column.type === "trendFactor") return displayFactor(derived.trendFactors?.[rowIndex]);
-  if (column.type === "trendedLatest") return displayNumber(derived.trendedLatestValues?.[rowIndex]);
-  if (column.type === "percentageDeveloped") return displayPercent(derived.percentageDeveloped?.[rowIndex]);
-  if (column.type === "developmentFactor") return displayFactor(derived.developmentFactors?.[rowIndex]);
-  if (column.type === "developedExposure") return displayNumber(derived.developedExposureValues?.[rowIndex]);
-  if (column.type === "futureExposure") return displayNumber(derived.futureExposureValues?.[rowIndex]);
-  if (column.type === "trendedDevelopedRatio") return displayRatio(derived.trendedDevelopedRatios?.[rowIndex]);
-  if (column.type === "expectedUltimateRatio") return displayRatio(derived.expectedUltimateRatios?.[rowIndex]);
-  if (column.type === "detrendedExpectedRatio") return displayRatio(derived.detrendedExpectedRatios?.[rowIndex]);
-  if (column.type === "futureLatest") return displayNumber(derived.futureLatestValues?.[rowIndex]);
-  if (column.type === "ultimate") return displayNumber(derived.capeCodUltimate?.[rowIndex]);
-  if (column.type === "ultimateRatio") return displayRatio(derived.capeCodUltimateRatios?.[rowIndex]);
-  return "";
+  if (column.type === "latest") return state.latestValues[rowIndex];
+  if (column.type === "exposure") return state.exposureValues[rowIndex];
+  if (column.type === "trendFactor") return derived.trendFactors?.[rowIndex];
+  if (column.type === "trendedLatest") return derived.trendedLatestValues?.[rowIndex];
+  if (column.type === "percentageDeveloped") return derived.percentageDeveloped?.[rowIndex];
+  if (column.type === "developmentFactor") return derived.developmentFactors?.[rowIndex];
+  if (column.type === "developedExposure") return derived.developedExposureValues?.[rowIndex];
+  if (column.type === "futureExposure") return derived.futureExposureValues?.[rowIndex];
+  if (column.type === "trendedDevelopedRatio") return derived.trendedDevelopedRatios?.[rowIndex];
+  if (column.type === "expectedUltimateRatio") return derived.expectedUltimateRatios?.[rowIndex];
+  if (column.type === "detrendedExpectedRatio") return derived.detrendedExpectedRatios?.[rowIndex];
+  if (column.type === "futureLatest") return derived.futureLatestValues?.[rowIndex];
+  if (column.type === "ultimate") return derived.capeCodUltimate?.[rowIndex];
+  if (column.type === "ultimateRatio") return derived.capeCodUltimateRatios?.[rowIndex];
+  return null;
+}
+
+const FACTOR_COLUMN_TYPES = new Set(["trendFactor", "developmentFactor"]);
+const RATIO_COLUMN_TYPES = new Set([
+  "trendedDevelopedRatio", "expectedUltimateRatio", "detrendedExpectedRatio", "ultimateRatio",
+]);
+
+function methodCellDisplay(column, value) {
+  if (column.type === "origin") return String(value ?? "");
+  if (column.type === "percentageDeveloped") return displayPercent(value);
+  if (FACTOR_COLUMN_TYPES.has(column.type)) return displayFactor(value);
+  if (RATIO_COLUMN_TYPES.has(column.type)) return displayRatio(value);
+  return displayNumber(value);
 }
 
 function normalizedMethodHighlight() {
@@ -1254,8 +1263,10 @@ function wireMethodGridInteractions() {
   });
 }
 
-function methodCellMarkup(value, column, colIndex, rowIndex) {
-  const display = String(value ?? "");
+function methodCellMarkup(column, colIndex, rowIndex, count) {
+  const value = methodCellValue(column, rowIndex, count);
+  const display = methodCellDisplay(column, value);
+  const copyValue = Number.isFinite(value) || typeof value === "string" ? String(value) : "";
   const isNullCell = rowIndex < rowCount() && display === "";
   const visibleDisplay = isNullCell ? "null" : display;
   const classes = ["ccMethodCell", column.className || ""];
@@ -1264,7 +1275,7 @@ function methodCellMarkup(value, column, colIndex, rowIndex) {
     if (numberOrNull(state.trendFactorOverrides[rowIndex]) !== null) classes.push("ccTrendOverrideCell");
     if (state.autoTrendFit) classes.push("ccTrendFactorReadOnly");
   }
-  return `<td class="${classes.join(" ")}" data-col-index="${colIndex}" data-row-index="${rowIndex}" data-cell-type="${column.type}" data-copy-value="${escapeHtml(display)}" aria-selected="false">${escapeHtml(visibleDisplay)}</td>`;
+  return `<td class="${classes.join(" ")}" data-col-index="${colIndex}" data-row-index="${rowIndex}" data-cell-type="${column.type}" data-copy-value="${escapeHtml(copyValue)}" aria-selected="false">${escapeHtml(visibleDisplay)}</td>`;
 }
 
 function renderMethodGrid() {
@@ -1275,9 +1286,9 @@ function renderMethodGrid() {
   els.methodHead.innerHTML = `<tr>${columns.map((column, colIndex) => `<th data-col-index="${colIndex}"><span class="ccMethodHeaderText">${escapeHtml(column.label)}</span></th>`).join("")}</tr>`;
   const rows = [];
   for (let rowIndex = 0; rowIndex < count; rowIndex += 1) {
-    rows.push(`<tr>${columns.map((column, colIndex) => methodCellMarkup(methodCellDisplay(column, rowIndex, count), column, colIndex, rowIndex)).join("")}</tr>`);
+    rows.push(`<tr>${columns.map((column, colIndex) => methodCellMarkup(column, colIndex, rowIndex, count)).join("")}</tr>`);
   }
-  rows.push(`<tr class="ccTotalRow">${columns.map((column, colIndex) => methodCellMarkup(methodCellDisplay(column, count, count), column, colIndex, count)).join("")}</tr>`);
+  rows.push(`<tr class="ccTotalRow">${columns.map((column, colIndex) => methodCellMarkup(column, colIndex, count, count)).join("")}</tr>`);
   els.methodGrid.innerHTML = rows.join("");
   applyMethodHighlightDom();
 }

@@ -40,7 +40,7 @@ const devLabelHelpers = [
 ].join("\n");
 
 function loadRoundAnalysisValue() {
-  const slice = functionSlice(persistenceSource, "function roundAnalysisValue", "function roundAverageFormulaValue");
+  const slice = functionSlice(persistenceSource, "function roundAnalysisValue", "function trimTrailingNulls");
   return new Function(
     "ratioNumberOrNull",
     "roundRatio",
@@ -62,7 +62,7 @@ function loadPersistedSnapshotReader() {
 
 function loadRatioValuesBuilder(state) {
   const slice = [
-    functionSlice(persistenceSource, "function roundAnalysisValue", "function roundAverageFormulaValue"),
+    functionSlice(persistenceSource, "function roundAnalysisValue", "function trimTrailingNulls"),
     functionSlice(persistenceSource, "function trimTrailingNulls", "function normalizeSummaryUserEntryValue"),
     functionSlice(
       persistenceSource,

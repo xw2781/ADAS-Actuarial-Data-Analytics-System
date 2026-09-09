@@ -135,6 +135,8 @@ function formatParameter(value) {
 // Rendering
 // ---------------------------------------------------------------------------
 
+// `attrs.copyValue` is the unrounded figure behind a formatted cell; the
+// context menu's Copy Value and the user-value editor read it back.
 function cell(text, classes = [], attrs = {}) {
   const td = document.createElement("td");
   td.textContent = text;
@@ -224,7 +226,7 @@ export function renderDfmCurvesTab() {
 
   const tbody = document.createElement("tbody");
   const valueCell = (column, value, period, selected) => {
-    const td = cell(formatFactor(value), ["dfmCurvesValue"], { column: column.number, period });
+    const td = cell(formatFactor(value), ["dfmCurvesValue"], { column: column.number, period, copyValue: value });
     if (selected) {
       td.classList.add("dfmCurvesSelected");
       td.setAttribute("aria-selected", "true");
@@ -237,10 +239,10 @@ export function renderDfmCurvesTab() {
   };
   const derivedCells = (tr, selectedNumber, selectedValue, cumulative, cumulativePct, incrementalPct, period) => {
     tr.appendChild(cell(selectedNumber === null ? "" : String(selectedNumber), ["dfmCurvesEstimateNumber"], { period }));
-    tr.appendChild(cell(formatFactor(selectedValue), ["dfmCurvesSelectedValue"]));
-    tr.appendChild(cell(formatFactor(cumulative), ["dfmCurvesDerived"]));
-    tr.appendChild(cell(formatPercent(cumulativePct), ["dfmCurvesDerived"]));
-    tr.appendChild(cell(formatPercent(incrementalPct), ["dfmCurvesDerived"]));
+    tr.appendChild(cell(formatFactor(selectedValue), ["dfmCurvesSelectedValue"], { copyValue: selectedValue }));
+    tr.appendChild(cell(formatFactor(cumulative), ["dfmCurvesDerived"], { copyValue: cumulative }));
+    tr.appendChild(cell(formatPercent(cumulativePct), ["dfmCurvesDerived"], { copyValue: cumulativePct }));
+    tr.appendChild(cell(formatPercent(incrementalPct), ["dfmCurvesDerived"], { copyValue: incrementalPct }));
   };
 
   for (let index = 0; index < periodCount; index++) {
@@ -361,7 +363,7 @@ export function renderDfmCurvesTab() {
           column.column_type === "user_entry" ? "dfmCurvesUserValue" : "",
           selected ? "dfmCurvesSelected" : "",
         ],
-        { column: column.number, period: "pattern" },
+        { column: column.number, period: "pattern", copyValue: value },
       );
       td.title = patternTitle;
       if (selected) td.setAttribute("aria-selected", "true");
@@ -369,10 +371,10 @@ export function renderDfmCurvesTab() {
       if (columnIndex === 0) tr.appendChild(cell("", ["dfmCurvesBlank"]));
     });
     tr.appendChild(cell("", ["dfmCurvesBlank"]));
-    tr.appendChild(cell(formatFactor(row.selected_value), ["dfmCurvesSelectedValue"]));
-    tr.appendChild(cell(formatFactor(row.cumulative_value), ["dfmCurvesDerived"]));
-    tr.appendChild(cell(formatPercent(row.cumulative_percentage), ["dfmCurvesDerived"]));
-    tr.appendChild(cell(formatPercent(row.incremental_percentage), ["dfmCurvesDerived"]));
+    tr.appendChild(cell(formatFactor(row.selected_value), ["dfmCurvesSelectedValue"], { copyValue: row.selected_value }));
+    tr.appendChild(cell(formatFactor(row.cumulative_value), ["dfmCurvesDerived"], { copyValue: row.cumulative_value }));
+    tr.appendChild(cell(formatPercent(row.cumulative_percentage), ["dfmCurvesDerived"], { copyValue: row.cumulative_percentage }));
+    tr.appendChild(cell(formatPercent(row.incremental_percentage), ["dfmCurvesDerived"], { copyValue: row.incremental_percentage }));
     tbody.appendChild(tr);
   });
   grid.appendChild(tbody);
@@ -452,7 +454,9 @@ function openEditor(td) {
   const input = document.createElement("input");
   input.type = "text";
   input.className = "dfmCurvesEditor";
-  input.value = td.textContent || "";
+  // Seed from the stored value, so committing an untouched cell keeps every
+  // digit rather than saving the printed number.
+  input.value = td.dataset.copyValue ?? td.textContent ?? "";
   input.setAttribute("aria-label", "User value");
   td.classList.add("dfmCurvesEditing");
   td.textContent = "";
@@ -532,7 +536,7 @@ function openCurvesContextMenu(event, td) {
     ? tab?.user_columns?.[userColumnIndex(columnNumber)]
     : null;
   const items = [];
-  if (td?.textContent) items.push({ label: "Copy Value", onSelect: () => copyText(td.textContent) });
+  if (td?.textContent) items.push({ label: "Copy Value", onSelect: () => copyText(td.dataset.copyValue ?? td.textContent) });
   items.push({ label: "Add User Column", onSelect: addUserColumn });
   if (userColumn) {
     items.push({ label: "Rename User Column", onSelect: () => renameUserColumn(columnNumber) });

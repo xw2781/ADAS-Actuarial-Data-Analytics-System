@@ -102,9 +102,13 @@ export function updateRatioSummary() {
     if (!Number.isFinite(col) || col < 0) return;
     cell.classList.remove("userEntryEditable", "excelLinked", "excelLinkError");
     cell.title = "";
+    // Every summary cell carries its unrounded factor in `data-copy-value`:
+    // the selected row chains it and a copy takes it, while the text stays at
+    // the Decimal Places a reader asked for.
     if (config && summaryRuntime.isUserEntryConfig(config)) {
       const value = summaryRuntime.getUserEntryValueForCol(config, col);
       cell.textContent = summaryRuntime.formatUserEntryFormulaEvaluationValue(value);
+      cell.dataset.copyValue = Number.isFinite(value) ? String(value) : "";
       cell.classList.remove("na", "ratioPlaceholder", "strike");
       cell.classList.add("userEntryEditable");
       const inputText = String(summaryRuntime.getUserEntryInputForCol(config, col) || "");
@@ -126,14 +130,17 @@ export function updateRatioSummary() {
         // A frozen benchmark row shows its own tail factor, as ResQ does.
         const tail = summaryRuntime.getSummaryRowTailFactor(config, col);
         cell.textContent = summaryRuntime.formatRatio(tail, summaryRuntime.getDfmDecimalPlaces());
+        cell.dataset.copyValue = String(tail);
         cell.classList.remove("na", "ratioPlaceholder", "strike");
       } else if (isSummary) {
         cell.textContent = "1.0000";
+        cell.dataset.copyValue = "1";
         cell.classList.remove("na");
         cell.classList.add("ratioPlaceholder");
         cell.classList.remove("strike");
       } else {
         cell.textContent = "";
+        cell.dataset.copyValue = "";
         cell.classList.add("na");
         cell.classList.remove("ratioPlaceholder", "strike");
       }
@@ -157,6 +164,7 @@ export function updateRatioSummary() {
     );
     if (summary.totalValid > 0 && summary.totalIncluded === 0) {
       cell.textContent = "1.0000";
+      cell.dataset.copyValue = "1";
       cell.classList.remove("na", "ratioPlaceholder", "strike");
       return;
     }
@@ -165,14 +173,15 @@ export function updateRatioSummary() {
       isVolume ? summary.sumA : summary.totalIncluded > 0
     );
     if (hasValue) {
-      const rounded = summaryRuntime.roundRatio(summary.value, 6);
       cell.textContent = summaryRuntime.formatRatio(
-        rounded,
+        summary.value,
         summaryRuntime.getDfmDecimalPlaces()
       );
+      cell.dataset.copyValue = String(summary.value);
       cell.classList.remove("na", "ratioPlaceholder");
     } else {
       cell.textContent = "1.0000";
+      cell.dataset.copyValue = "1";
       cell.classList.remove("na");
       cell.classList.add("ratioPlaceholder");
     }

@@ -86,8 +86,11 @@ function cellSelectorFor(row, col, rowKey = "r", colKey = "c") {
   return `td[data-${dataAttrName(rowKey)}="${row}"][data-${dataAttrName(colKey)}="${col}"]`;
 }
 
+// A copy carries the number a cell holds, not the rounded text it shows: a cell
+// that renders a formatted figure keeps the unrounded value in
+// `data-copy-value`, and only a cell without one copies its text.
 function cellText(cell) {
-  return String(cell?.textContent ?? "").trim();
+  return cell?.dataset?.copyValue ?? String(cell?.textContent ?? "").trim();
 }
 
 function buildTsvFromRange(container, range, getCellText = cellText, rowKey = "r", colKey = "c") {

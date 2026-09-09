@@ -14,7 +14,7 @@ import {
 } from "/ui/method_pages/dfm/dfm_dataset_formula.js?v=20260820a";
 
 const {
-  state, calcRatio, roundRatio, averageRowReferenceValue, formatRatio, computeAverageForColumn,
+  state, calcRatio, averageRowReferenceValue, formatRatio, computeAverageForColumn,
   ratioStrikeSet, selectedSummaryByCol, summaryRowConfigs, summaryRowMap, BASE_SUMMARY_ROWS,
   getShowNaBorders, getRatioSummaryRaf, setRatioSummaryRaf,
   getLastSummaryCtxRowId, setLastSummaryCtxRowId,
@@ -92,7 +92,7 @@ function parseUserEntryClipboardValue(raw, referenceValues) {
 
   const evaluated = evaluateSimpleMathExpression(text, referenceValues);
   if (Number.isFinite(evaluated) && evaluated > 0) {
-    return { input: text, value: roundRatio(evaluated, 6) };
+    return { input: text, value: evaluated };
   }
 
   const compact = text.replace(/\u00a0/g, "").replace(/,/g, "");
@@ -101,8 +101,7 @@ function parseUserEntryClipboardValue(raw, referenceValues) {
   const numeric = Number(formattedNumber[1]);
   const value = formattedNumber[2] ? numeric / 100 : numeric;
   if (!Number.isFinite(value) || value <= 0) return null;
-  const rounded = roundRatio(value, 6);
-  return { input: String(rounded), value: rounded };
+  return { input: String(value), value };
 }
 
 function pasteUserEntryClipboardGrid(summaryTable, selectedTable, startCell, rawText) {
@@ -222,12 +221,11 @@ function commitUserEntryArrayFormula(summaryTable, selectedTable, rowId, startCo
         error: "Each array formula item must evaluate to a number > 0.",
       };
     }
-    const nextValue = roundRatio(value, 6);
     nextEntries.push({
       cell: availableCells[i].cell,
       col: targetCol,
-      value: nextValue,
-      input: i === 0 ? String(raw || "").trim() : String(nextValue),
+      value,
+      input: i === 0 ? String(raw || "").trim() : String(value),
     });
   }
 
@@ -325,14 +323,13 @@ async function commitSummaryFormulaInput(inputEl) {
       );
       return false;
     }
-    const nextValue = roundRatio(parsed, 6);
     restoreSupersededExcelRange(summaryTable, rowId, col, raw);
-    setUserEntryCellEntry(rowId, col, stripFormulaEquals(raw) ? raw : "1", nextValue, {
+    setUserEntryCellEntry(rowId, col, stripFormulaEquals(raw) ? raw : "1", parsed, {
       displayInput: resolvedDatasetFormula.displayFormula === raw ? "" : resolvedDatasetFormula.displayFormula,
     });
     persistUserEntryRowsFromState();
     const cell = summaryTable.querySelector(`td.summaryCell[data-r="${rowId}"][data-col="${col}"]`);
-    if (cell) setUserEntryCellDisplayValue(cell, nextValue);
+    if (cell) setUserEntryCellDisplayValue(cell, parsed);
     if (selectedTable) ensureSelectedRowValues(summaryTable, selectedTable);
     applyUserEntryReferenceHighlights(summaryTable);
     applyExcelRangeHighlights(summaryTable);
@@ -724,7 +721,7 @@ function computeSummaryRowValueForColumn(model, col, rowId, cache, visiting, lab
         }
         visiting.delete(key);
         const parsed = evaluateSimpleMathExpression(expr, refValues);
-        value = Number.isFinite(parsed) && parsed > 0 ? roundRatio(parsed, 6) : sanitizeUserEntryValue(getUserEntryValueForCol(cfg, col));
+        value = Number.isFinite(parsed) && parsed > 0 ? parsed : sanitizeUserEntryValue(getUserEntryValueForCol(cfg, col));
       } else {
         // No cached Excel values yet; keep the stored value
         value = sanitizeUserEntryValue(getUserEntryValueForCol(cfg, col));
@@ -743,7 +740,7 @@ function computeSummaryRowValueForColumn(model, col, rowId, cache, visiting, lab
       visiting.delete(key);
       const parsed = inputRaw ? evaluateSimpleMathExpression(inputRaw, refValues) : 1;
       if (Number.isFinite(parsed) && parsed > 0) {
-        value = roundRatio(parsed, 6);
+        value = parsed;
       } else {
         // If evaluation failed (e.g. dependency has Excel ref not yet cached),
         // keep the current stored value instead of resetting to 1
@@ -761,7 +758,7 @@ function computeSummaryRowValueForColumn(model, col, rowId, cache, visiting, lab
       const hasValue =
         summary.value !== null &&
         (isVolume ? summary.sumA : summary.totalIncluded > 0);
-      value = hasValue ? roundRatio(summary.value, 6) : 1;
+      value = hasValue ? summary.value : 1;
     }
   }
 

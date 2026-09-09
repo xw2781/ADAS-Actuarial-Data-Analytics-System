@@ -930,33 +930,46 @@ function effectivePriorWeight(sourceIndex, rowIndex) {
   return denominator > 0 ? targetWeight / denominator : 0;
 }
 
-function displayWeight(sourceIndex, rowIndex) {
-  if (numberOrNull(state.priorSources[sourceIndex]?.values?.[rowIndex]) === null) return "";
-  if (state.showEffectiveWeights) {
-    const value = effectivePriorWeight(sourceIndex, rowIndex);
-    return value === null ? "" : `${(value * 100).toFixed(state.statisticDecimalPlaces)}%`;
-  }
-  const value = numberOrNull(state.priorSources[sourceIndex]?.weights?.[rowIndex]);
-  return value === null ? "0.0" : value.toFixed(1);
+// The weight a prior's cell holds: the effective share when those are shown,
+// otherwise the entered weight, and nothing for a row the prior has no value in.
+function weightValue(sourceIndex, rowIndex) {
+  if (numberOrNull(state.priorSources[sourceIndex]?.values?.[rowIndex]) === null) return null;
+  if (state.showEffectiveWeights) return effectivePriorWeight(sourceIndex, rowIndex);
+  return numberOrNull(state.priorSources[sourceIndex]?.weights?.[rowIndex]) ?? 0;
 }
 
-function methodCellDisplay(column, rowIndex, count = rowCount()) {
+function displayWeight(value) {
+  if (value === null) return "";
+  if (state.showEffectiveWeights) return `${(value * 100).toFixed(state.statisticDecimalPlaces)}%`;
+  return value.toFixed(1);
+}
+
+// The figure a method cell holds, unrounded; a copy takes this, the text
+// shows `methodCellDisplay`.
+function methodCellValue(column, rowIndex, count = rowCount()) {
   if (rowIndex === count) {
     if (column.type === "origin") return "Total";
-    if (column.type === "latest") return displayNumber(sumMethodValues(state.latestValues));
-    if (column.type === "prior") return displayNumber(sumMethodValues(state.priorSources[column.sourceIndex]?.values));
-    if (column.type === "selectedPrior") return displayNumber(sumMethodValues(state.selectedPriorValues));
-    if (column.type === "ultimate") return displayNumber(sumMethodValues(state.newUltimateValues));
-    return "";
+    if (column.type === "latest") return sumMethodValues(state.latestValues);
+    if (column.type === "prior") return sumMethodValues(state.priorSources[column.sourceIndex]?.values);
+    if (column.type === "selectedPrior") return sumMethodValues(state.selectedPriorValues);
+    if (column.type === "ultimate") return sumMethodValues(state.newUltimateValues);
+    return null;
   }
   if (column.type === "origin") return originLabel(rowIndex);
-  if (column.type === "latest") return displayNumber(state.latestValues[rowIndex]);
-  if (column.type === "percentage") return displayPercent(state.percentDevelopedValues[rowIndex]);
-  if (column.type === "prior") return displayNumber(state.priorSources[column.sourceIndex]?.values?.[rowIndex]);
-  if (column.type === "weight") return displayWeight(column.sourceIndex, rowIndex);
-  if (column.type === "selectedPrior") return displayNumber(state.selectedPriorValues[rowIndex]);
-  if (column.type === "ultimate") return displayNumber(state.newUltimateValues[rowIndex]);
-  return "";
+  if (column.type === "latest") return state.latestValues[rowIndex];
+  if (column.type === "percentage") return state.percentDevelopedValues[rowIndex];
+  if (column.type === "prior") return state.priorSources[column.sourceIndex]?.values?.[rowIndex];
+  if (column.type === "weight") return weightValue(column.sourceIndex, rowIndex);
+  if (column.type === "selectedPrior") return state.selectedPriorValues[rowIndex];
+  if (column.type === "ultimate") return state.newUltimateValues[rowIndex];
+  return null;
+}
+
+function methodCellDisplay(column, value) {
+  if (column.type === "origin") return String(value ?? "");
+  if (column.type === "percentage") return displayPercent(value);
+  if (column.type === "weight") return displayWeight(value);
+  return displayNumber(value);
 }
 
 function normalizedMethodHighlight() {
@@ -1243,8 +1256,10 @@ function wireMethodGridInteractions() {
   });
 }
 
-function methodCellMarkup(value, column, colIndex, rowIndex) {
-  const display = String(value ?? "");
+function methodCellMarkup(column, colIndex, rowIndex, count) {
+  const value = methodCellValue(column, rowIndex, count);
+  const display = methodCellDisplay(column, value);
+  const copyValue = Number.isFinite(value) || typeof value === "string" ? String(value) : "";
   const isNullCell = rowIndex < rowCount() && display === "";
   const visibleDisplay = isNullCell ? "null" : display;
   const source = Number.isInteger(column.sourceIndex) ? state.priorSources[column.sourceIndex] : null;
@@ -1255,7 +1270,7 @@ function methodCellMarkup(value, column, colIndex, rowIndex) {
   if (column.type === "prior" && rowIndex < rowCount() && hasSourceValue && weight > 0) classes.push("bfSelectedSourceCell");
   if (column.type === "weight" && rowIndex < rowCount() && hasSourceValue && weight > 0) classes.push("bfWeightNonZero");
   const sourceAttr = Number.isInteger(column.sourceIndex) ? ` data-source-index="${column.sourceIndex}"` : "";
-  return `<td class="${classes.join(" ")}" data-col-index="${colIndex}" data-row-index="${rowIndex}" data-cell-type="${column.type}"${sourceAttr} data-copy-value="${escapeHtml(display)}" aria-selected="false">${escapeHtml(visibleDisplay)}</td>`;
+  return `<td class="${classes.join(" ")}" data-col-index="${colIndex}" data-row-index="${rowIndex}" data-cell-type="${column.type}"${sourceAttr} data-copy-value="${escapeHtml(copyValue)}" aria-selected="false">${escapeHtml(visibleDisplay)}</td>`;
 }
 
 function renderMethodGrid() {
@@ -1266,9 +1281,9 @@ function renderMethodGrid() {
   els.methodHead.innerHTML = `<tr>${columns.map((column, colIndex) => `<th class="${column.type === "weight" ? "bfWeightHeader" : ""}" data-col-index="${colIndex}"><span class="bfMethodHeaderText">${escapeHtml(column.label)}</span></th>`).join("")}</tr>`;
   const rows = [];
   for (let rowIndex = 0; rowIndex < count; rowIndex += 1) {
-    rows.push(`<tr>${columns.map((column, colIndex) => methodCellMarkup(methodCellDisplay(column, rowIndex, count), column, colIndex, rowIndex)).join("")}</tr>`);
+    rows.push(`<tr>${columns.map((column, colIndex) => methodCellMarkup(column, colIndex, rowIndex, count)).join("")}</tr>`);
   }
-  rows.push(`<tr class="bfTotalRow">${columns.map((column, colIndex) => methodCellMarkup(methodCellDisplay(column, count, count), column, colIndex, count)).join("")}</tr>`);
+  rows.push(`<tr class="bfTotalRow">${columns.map((column, colIndex) => methodCellMarkup(column, colIndex, count, count)).join("")}</tr>`);
   els.methodGrid.innerHTML = rows.join("");
   applyMethodHighlightDom();
 }

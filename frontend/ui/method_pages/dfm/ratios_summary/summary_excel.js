@@ -22,7 +22,7 @@ import {
 } from "/ui/method_pages/dfm/dfm_dataset_formula.js?v=20260820a";
 
 const {
-  state, calcRatio, roundRatio, formatRatio, computeAverageForColumn,
+  state, calcRatio, formatRatio, computeAverageForColumn,
   ratioStrikeSet, selectedSummaryByCol, summaryRowConfigs, summaryRowMap, BASE_SUMMARY_ROWS,
   getShowNaBorders, getRatioSummaryRaf, setRatioSummaryRaf,
   getLastSummaryCtxRowId, setLastSummaryCtxRowId,
@@ -138,7 +138,7 @@ async function commitExcelFormulaAsync(rowId, col, raw, options = {}) {
       }
       return false;
     }
-    const nextValue = roundRatio(result.value, 6);
+    const nextValue = result.value;
     restoreSupersededExcelRange(summaryTable, rowId, col, raw);
     setUserEntryCellEntry(rowId, col, raw, nextValue, { displayInput: result.displayFormula });
     persistUserEntryRowsFromState();
@@ -383,7 +383,7 @@ export async function refreshAllExcelLinks(options = {}) {
       continue;
     }
 
-    const nextValue = roundRatio(parsed, 6);
+    const nextValue = parsed;
     const cfg = summaryRowMap.get(rowId);
     if (!cfg) continue;
     refreshedTargetKeys.add(dfmExcelInvalidTargetKey(rowId, col));
@@ -487,10 +487,7 @@ export function getDfmExternalLinkRecords() {
     const end = String(group.reference.endCell || start);
     const firstTarget = targets[0];
     const firstValue = firstTarget
-      ? formatRatio(
-        roundRatio(getUserEntryValueForCol(firstTarget.cfg, firstTarget.col), 6),
-        getDfmDecimalPlaces(),
-      )
+      ? formatRatio(getUserEntryValueForCol(firstTarget.cfg, firstTarget.col), getDfmDecimalPlaces())
       : "";
     return {
       id: group.id,
@@ -508,7 +505,7 @@ function hardCodeDfmUserEntryTarget(target) {
   const cfg = target?.cfg;
   const col = Number(target?.col);
   if (!cfg || !Number.isInteger(col) || col < 0 || !isUserEntryConfig(cfg)) return false;
-  const value = roundRatio(getUserEntryValueForCol(cfg, col), 6);
+  const value = getUserEntryValueForCol(cfg, col);
   const inputs = normalizeUserEntryInputs(
     cfg.inputs ?? cfg.formulas,
     cfg.values,
@@ -589,6 +586,7 @@ function hideSummaryFormulaBar({ keepHoverTarget = false } = {}) {
 function setUserEntryCellDisplayValue(cell, value) {
   if (!cell) return;
   cell.textContent = formatUserEntryFormulaEvaluationValue(value);
+  cell.dataset.copyValue = Number.isFinite(value) ? String(value) : "";
   cell.classList.remove("na");
   cell.classList.remove("ratioPlaceholder");
   cell.classList.remove("strike");
@@ -811,7 +809,7 @@ async function readExcelRangeValues(range, options = {}) {
         error: itemResult?.error || `Excel cell ${items[index].cell} must contain a number greater than 0.`,
       };
     }
-    values.push(roundRatio(value, 6));
+    values.push(value);
   }
   return { ok: true, values };
 }

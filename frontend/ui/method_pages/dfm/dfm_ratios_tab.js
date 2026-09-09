@@ -994,7 +994,9 @@ export function renderRatioTable() {
         dataTd.dataset.copyR = String(r);
         dataTd.dataset.copyC = String(dataDisplayCol(c));
         const hasData = !!(mask[r] && mask[r][c]);
+        const dataValue = hasData ? ratioNumberOrNull(vals?.[r]?.[c]) : null;
         dataTd.textContent = hasData ? formatCellValue(vals?.[r]?.[c]) : "";
+        dataTd.dataset.copyValue = dataValue === null ? "" : String(dataValue);
         if (!hasData) dataTd.classList.add("na");
         tr.appendChild(dataTd);
       }
@@ -1017,15 +1019,18 @@ export function renderRatioTable() {
         const hasB = !!(mask[r] && mask[r][c + 1]);
         if (hasA && hasB) {
           const persistedRatio = persistedRatioOrNull(persistedRatioTriangleValues?.[r]?.[c]);
-          const ratio = Number.isFinite(persistedRatio)
-            ? persistedRatio
-            : calcRatio(vals?.[r]?.[c], vals?.[r]?.[c + 1]);
+          const exactRatio = calcRatio(vals?.[r]?.[c], vals?.[r]?.[c + 1]);
+          const ratio = Number.isFinite(persistedRatio) ? persistedRatio : exactRatio;
           if (Number.isFinite(ratio)) {
             const rounded = roundRatio(ratio, 6);
             td.textContent = formatRatio(rounded, getDfmDecimalPlaces());
+            // The file keeps the ratio at six decimals; a copy takes the one
+            // the triangle divides to.
+            td.dataset.copyValue = String(exactRatio ?? ratio);
             td.classList.remove("ratioPlaceholder");
           } else {
             td.textContent = formatRatio(1, getDfmDecimalPlaces());
+            td.dataset.copyValue = "1";
             td.classList.add("ratioPlaceholder");
             ratioStrikeSet.delete(strikeKey);
           }

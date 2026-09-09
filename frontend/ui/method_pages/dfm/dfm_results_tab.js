@@ -16,7 +16,6 @@ import {
   getRatioHeaderLabels,
   getCumulativeFactors,
   getLatestRowValue,
-  roundRatio,
   ensureDefaultSummarySelectionForColumns,
   getOriginLabelTextForRatio,
   getResolvedProjectName,
@@ -979,7 +978,7 @@ export function buildPercentDevelopedVector() {
     const maxCol = Math.min(devs.length - 1, (vals?.[r] || []).length - 1);
     const latest = getLatestRowValue(vals, mask, r, maxCol);
     const factor = latest ? cumulative[latest.col] : null;
-    out.push(Number.isFinite(factor) && factor !== 0 ? roundRatio(1 / factor, 6) : null);
+    out.push(Number.isFinite(factor) && factor !== 0 ? 1 / factor : null);
   }
   return out;
 }
@@ -1091,6 +1090,12 @@ export function renderResultsTable() {
     cell.dataset.c = String(col);
     return cell;
   };
+  // The text is the figure at the Details tab's format; the copy is the figure.
+  const showResult = (cell, value, format) => {
+    if (!cell) return;
+    cell.textContent = Number.isFinite(value) ? format(value) : "";
+    cell.dataset.copyValue = Number.isFinite(value) ? String(value) : "";
+  };
   for (let r = 0; r < origins.length; r++) {
     const tr = document.createElement("tr");
     const rowHead = document.createElement("th");
@@ -1111,7 +1116,7 @@ export function renderResultsTable() {
     const maxCol = Math.min(devs.length - 1, (vals?.[r] || []).length - 1);
     const latest = getLatestRowValue(vals, mask, r, maxCol);
     const latestValue = latest?.value;
-    latestTd.textContent = Number.isFinite(latestValue) ? formatCellValue(latestValue) : "";
+    showResult(latestTd, latestValue, formatCellValue);
     if (Number.isFinite(latestValue)) {
       latestTotal += latestValue;
       latestTotalHasValue = true;
@@ -1125,13 +1130,13 @@ export function renderResultsTable() {
     }
     if (Number.isFinite(ultimateValue) && Number.isFinite(latestValue)) {
       const reserveValue = ultimateValue - latestValue;
-      reserveTd.textContent = formatCellValue(reserveValue);
+      showResult(reserveTd, reserveValue, formatCellValue);
       reserveTotal += reserveValue;
       reserveTotalHasValue = true;
     } else {
-      reserveTd.textContent = "";
+      showResult(reserveTd, null, formatCellValue);
     }
-    ultTd.textContent = Number.isFinite(ultimateValue) ? formatCellValue(ultimateValue) : "";
+    showResult(ultTd, ultimateValue, formatCellValue);
     if (Number.isFinite(ultimateValue)) {
       ultimateTotal += ultimateValue;
       ultimateTotalHasValue = true;
@@ -1142,7 +1147,7 @@ export function renderResultsTable() {
     tr.appendChild(ultTd);
     if (basisTd) {
       const basisValue = getRatioBasisRowValue(ratioBasisStateForRender, origins[r], r);
-      basisTd.textContent = formatRatioBasisCellValue(basisValue);
+      showResult(basisTd, basisValue, formatRatioBasisCellValue);
       if (Number.isFinite(basisValue)) {
         basisTotal += basisValue;
         basisTotalHasValue = true;
@@ -1155,7 +1160,7 @@ export function renderResultsTable() {
           basisValue !== 0
             ? (ultimateValue / basisValue)
             : null;
-        ultRatioTd.textContent = formatPercentCellValue(ultRatioValue);
+        showResult(ultRatioTd, ultRatioValue, formatPercentCellValue);
         tr.appendChild(ultRatioTd);
       }
     }
@@ -1172,23 +1177,23 @@ export function renderResultsTable() {
 
   const latestTotalTd = document.createElement("td");
   tagResultCell(latestTotalTd, origins.length, 0);
-  latestTotalTd.textContent = latestTotalHasValue ? formatCellValue(latestTotal) : "";
+  showResult(latestTotalTd, latestTotalHasValue ? latestTotal : null, formatCellValue);
   totalTr.appendChild(latestTotalTd);
 
   const reserveTotalTd = document.createElement("td");
   tagResultCell(reserveTotalTd, origins.length, 1);
-  reserveTotalTd.textContent = reserveTotalHasValue ? formatCellValue(reserveTotal) : "";
+  showResult(reserveTotalTd, reserveTotalHasValue ? reserveTotal : null, formatCellValue);
   totalTr.appendChild(reserveTotalTd);
 
   const ultimateTotalTd = document.createElement("td");
   tagResultCell(ultimateTotalTd, origins.length, 2);
-  ultimateTotalTd.textContent = ultimateTotalHasValue ? formatCellValue(ultimateTotal) : "";
+  showResult(ultimateTotalTd, ultimateTotalHasValue ? ultimateTotal : null, formatCellValue);
   totalTr.appendChild(ultimateTotalTd);
 
   if (ratioBasisActive) {
     const basisTotalTd = document.createElement("td");
     tagResultCell(basisTotalTd, origins.length, 3);
-    basisTotalTd.textContent = basisTotalHasValue ? formatRatioBasisCellValue(basisTotal) : "";
+    showResult(basisTotalTd, basisTotalHasValue ? basisTotal : null, formatRatioBasisCellValue);
     totalTr.appendChild(basisTotalTd);
 
     const totalUltRatioTd = document.createElement("td");
@@ -1197,7 +1202,7 @@ export function renderResultsTable() {
       ultimateTotalHasValue && basisTotalHasValue && basisTotal !== 0
         ? (ultimateTotal / basisTotal)
         : null;
-    totalUltRatioTd.textContent = formatPercentCellValue(totalUltRatioValue);
+    showResult(totalUltRatioTd, totalUltRatioValue, formatPercentCellValue);
     totalTr.appendChild(totalUltRatioTd);
   }
   tbody.appendChild(totalTr);

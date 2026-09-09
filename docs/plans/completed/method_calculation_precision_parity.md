@@ -114,8 +114,13 @@ its own contract:
 - `roundRatio` in `dfm_ratio_calc.js` still rounds the binary double rather than
   the decimal text, so a value sitting exactly on a half can round the wrong way
   in the browser. It reaches storage only through the Excel paste paths.
-- The Curves tab's user-value editor seeds from rendered text, so re-opening and
-  committing a cell without changing it can save the displayed number.
+- ~~The Curves tab's user-value editor seeds from rendered text, so re-opening and
+  committing a cell without changing it can save the displayed number.~~ Done
+  2026-09-09: every Curves cell carries `data-copy-value` and the editor seeds
+  from it. The same change removed the page-side six-decimal rounding this plan
+  had left in `dfm_persistence.js` (average formula values), the User Entry
+  evaluation paths, the Excel-linked values, and the percent-developed vector,
+  and made every method grid copy its unrounded values.
 - A custom average row's "- Ult" cell is replaced by `1.0` instead of keeping the
   row's own stored tail.
 - Bootstrap's scale parameters are still quantized before the simulation reads

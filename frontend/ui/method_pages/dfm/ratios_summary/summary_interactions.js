@@ -10,7 +10,7 @@ import {
 import { createRatioDragVisitTracker } from "/ui/method_pages/dfm/dfm_ratio_drag_tracker.js";
 
 const {
-  state, calcRatio, roundRatio, formatRatio, computeAverageForColumn,
+  state, calcRatio, formatRatio, computeAverageForColumn,
   ratioStrikeSet, selectedSummaryByCol, summaryRowConfigs, summaryRowMap, BASE_SUMMARY_ROWS,
   getShowNaBorders, getRatioSummaryRaf, setRatioSummaryRaf,
   getLastSummaryCtxRowId, setLastSummaryCtxRowId,
@@ -256,12 +256,16 @@ function ensureSelectedRowValues(summaryTable, selectedTable) {
     if (!cell) {
       selectedSummaryByCol.delete(col);
       td.textContent = "";
+      td.dataset.copyValue = "";
       return;
     }
-    const text = cell.textContent || "";
-    td.textContent = text;
-    const val = parseFloat(text);
-    if (Number.isFinite(val)) selectedValues[col] = val;
+    // The summary cell carries the factor it holds in full; the selected row
+    // chains and copies that number, not the text printed at Decimal Places.
+    const copyValue = cell.dataset.copyValue ?? "";
+    td.textContent = cell.textContent || "";
+    td.dataset.copyValue = copyValue;
+    const val = Number(copyValue);
+    if (copyValue !== "" && Number.isFinite(val)) selectedValues[col] = val;
   });
 
   if (cumulativeRow) {
@@ -273,6 +277,7 @@ function ensureSelectedRowValues(summaryTable, selectedTable) {
       if (!target) continue;
       if (!Number.isFinite(selVal)) {
         target.textContent = "";
+        target.dataset.copyValue = "";
         running = null;
         continue;
       }
@@ -282,12 +287,13 @@ function ensureSelectedRowValues(summaryTable, selectedTable) {
         running = selVal * running;
       } else {
         target.textContent = "";
+        target.dataset.copyValue = "";
         running = null;
         continue;
       }
-      const rounded = roundRatio(running, 6);
-      cumulativeValues[i] = rounded;
-      target.textContent = formatRatio(rounded, getDfmDecimalPlaces());
+      cumulativeValues[i] = running;
+      target.textContent = formatRatio(running, getDfmDecimalPlaces());
+      target.dataset.copyValue = String(running);
     }
   }
 
@@ -298,9 +304,12 @@ function ensureSelectedRowValues(summaryTable, selectedTable) {
       const cumulativeValue = cumulativeValues[col];
       if (!Number.isFinite(cumulativeValue) || cumulativeValue === 0) {
         target.textContent = "";
+        target.dataset.copyValue = "";
         return;
       }
-      target.textContent = formatPercentDeveloped(roundRatio(1 / cumulativeValue, 6));
+      const developed = 1 / cumulativeValue;
+      target.textContent = formatPercentDeveloped(developed);
+      target.dataset.copyValue = String(developed);
     });
   }
 }

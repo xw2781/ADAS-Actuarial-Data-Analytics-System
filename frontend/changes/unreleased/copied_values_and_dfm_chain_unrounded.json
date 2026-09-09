@@ -1,0 +1,12 @@
+{
+  "type": "fix",
+  "scope": "methods",
+  "audience": "user",
+  "summary": "Copying cells from a method grid now pastes the full, unrounded numbers, and a Development Factor Method saved from the page no longer rounds its selected factors to six decimals before they are chained into the ultimate.",
+  "details": [
+    "The Ratios, Curves, and Results tabs of a Development Factor Method, and the Bornhuetter Ferguson, Cape Cod, and Result Selection grids, copy the figure behind each cell rather than the text printed at the chosen decimal places. A percentage copies as its fraction. The Dataset Viewer and Berquist Sherman already copied unrounded values.",
+    "The selected, cumulative, and percent-developed rows on the Ratios tab now chain the full value of each summary cell instead of re-reading the printed text, so the cumulative factors on screen match the ones the Engine uses.",
+    "Average-formula values, User Entry results, Excel-linked values, and the percent-developed pattern are saved whole. Only the ratio triangle, which nothing calculates from, stays at six decimals in the file.",
+    "Opening a Curves tab user value and committing it unchanged keeps every digit instead of saving the displayed number."
+  ]
+}
