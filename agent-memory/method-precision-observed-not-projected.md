@@ -30,6 +30,17 @@ Two roundings are deliberate and must stay:
   `frontend/ui/shared/components/formula_bar/formula_text.js`).
 - Cape Cod's rate boxes at eight decimals — the precision the box itself offers.
 
+The 2026-09-08 commit fixed the Engine side; the *page* kept rounding until
+2026-09-09. `dfm_persistence.js` wrote the average-formula values at six decimals
+(`roundAverageFormulaValue`), the User Entry / Excel paths did `roundRatio(x, 6)`,
+and the Ratios tab's selected row parsed the *printed* summary text
+(`parseFloat(cell.textContent)`). Now the only `roundRatio(…, 6)` left on the page
+is the display-only ratio triangle. The copy convention that came with it: a
+formatted cell carries its unrounded figure in `data-copy-value`, and
+`table_selection.js`'s default `cellText` reads that before `textContent` (BF/CC
+compute it in `methodCellValue`, RS passes it to `wireMethodCell`/`wireResultsCell`,
+BS's `tagValueCell` and the DSV grid already had it).
+
 **Why:** three mechanisms were each losing precision ResQ keeps — a display
 precision used as a storage precision at import, a six-decimal projection chained
 ten times through the cumulative development factors, and `pandas.read_csv` without
