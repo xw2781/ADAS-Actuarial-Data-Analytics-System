@@ -12,10 +12,10 @@ import {
   markDfmDirty,
   sanitizeDfmMethodFilePart,
 } from "/ui/method_pages/dfm/dfm_state.js";
-import { resetRatioChartThresholds } from "/ui/method_pages/dfm/dfm_ratios_tab.js?v=20260909b";
+import { resetRatioChartThresholds } from "/ui/method_pages/dfm/dfm_ratios_tab.js?v=20260909c";
 import {
   scheduleRatioSelectionLoad,
-} from "/ui/method_pages/dfm/dfm_persistence.js?v=20260907a";
+} from "/ui/method_pages/dfm/dfm_persistence.js?v=20260909c";
 import { openDatasetNamePicker } from "/ui/shared/components/pickers/dataset_name_picker.js";
 import {
   loadProjectUserPreferences,

@@ -17,7 +17,7 @@ const [persistenceSource, summarySource, stateSource, ratiosTabSource] = await P
   source("ui/method_pages/dfm/dfm_state.js"),
   source("ui/method_pages/dfm/dfm_ratios_tab.js"),
 ]);
-const { calcRatio, ratioNumberOrNull, roundRatio } = await import(
+const { calcRatio, ratioNumberOrNull } = await import(
   new URL("ui/method_pages/dfm/dfm_ratio_calc.js", root)
 );
 
@@ -29,24 +29,18 @@ function functionSlice(text, startMarker, endMarker) {
   return text.slice(start, end).replace(/^export /gmu, "");
 }
 
-const DFM_ANALYSIS_DECIMALS = Number(
-  /const DFM_ANALYSIS_DECIMALS = (\d+);/u.exec(persistenceSource)?.[1],
-);
-
 const devLabelHelpers = [
   functionSlice(stateSource, "export function getEffectiveDevLabelsForModel", "export function toLabelNum"),
   functionSlice(stateSource, "export function toLabelNum", "export function getRatioHeaderLabels"),
   functionSlice(stateSource, "export function getRatioHeaderLabels", "export function getOriginLabelTextForRatio"),
 ].join("\n");
 
-function loadRoundAnalysisValue() {
-  const slice = functionSlice(persistenceSource, "function roundAnalysisValue", "function trimTrailingNulls");
+function loadAnalysisValue() {
+  const slice = functionSlice(persistenceSource, "function analysisValue", "function trimTrailingNulls");
   return new Function(
     "ratioNumberOrNull",
-    "roundRatio",
-    "DFM_ANALYSIS_DECIMALS",
-    `${slice}\nreturn roundAnalysisValue;`,
-  )(ratioNumberOrNull, roundRatio, DFM_ANALYSIS_DECIMALS);
+    `${slice}\nreturn analysisValue;`,
+  )(ratioNumberOrNull);
 }
 
 function loadPersistedSnapshotReader() {
@@ -62,7 +56,7 @@ function loadPersistedSnapshotReader() {
 
 function loadRatioValuesBuilder(state) {
   const slice = [
-    functionSlice(persistenceSource, "function roundAnalysisValue", "function trimTrailingNulls"),
+    functionSlice(persistenceSource, "function analysisValue", "function trimTrailingNulls"),
     functionSlice(persistenceSource, "function trimTrailingNulls", "function normalizeSummaryUserEntryValue"),
     functionSlice(
       persistenceSource,
@@ -75,10 +69,8 @@ function loadRatioValuesBuilder(state) {
     "state",
     "calcRatio",
     "ratioNumberOrNull",
-    "roundRatio",
-    "DFM_ANALYSIS_DECIMALS",
     `${slice}\nreturn buildCalculatedRatioTriangleValues;`,
-  )(state, calcRatio, ratioNumberOrNull, roundRatio, DFM_ANALYSIS_DECIMALS);
+  )(state, calcRatio, ratioNumberOrNull);
 }
 
 function loadPatternBuilder(state, ratioStrikeSet) {
@@ -114,20 +106,21 @@ const MODEL = {
 };
 
 test("a null ratio stays null instead of rounding to zero", () => {
-  const roundAnalysisValue = loadRoundAnalysisValue();
+  const analysisValue = loadAnalysisValue();
   // calcRatio returns null when there is no ratio to compute; Number(null) is 0
   // and finite, so an unguarded finite check turns that null into a real 0.
   assert.equal(calcRatio(0, 5), null);
-  assert.equal(roundAnalysisValue(calcRatio(0, 5)), null);
-  assert.equal(roundAnalysisValue(null), null);
-  assert.equal(roundAnalysisValue(undefined), null);
-  assert.equal(roundAnalysisValue(""), null);
-  assert.equal(roundAnalysisValue(0), 0);
+  assert.equal(analysisValue(calcRatio(0, 5)), null);
+  assert.equal(analysisValue(null), null);
+  assert.equal(analysisValue(undefined), null);
+  assert.equal(analysisValue(""), null);
+  assert.equal(analysisValue(0), 0);
   // A zero later value is no ratio either: the origin has nothing to develop
   // from, so the cell reads as the muted placeholder and no average uses it.
   assert.equal(calcRatio(5, 0), null);
-  assert.equal(roundAnalysisValue(calcRatio(5, 0)), null);
-  assert.equal(roundAnalysisValue(calcRatio(2.461532, 11.924039)), 4.844154);
+  assert.equal(analysisValue(calcRatio(5, 0)), null);
+  // The ratio is kept whole rather than trimmed to six decimals.
+  assert.equal(analysisValue(calcRatio(2.461532, 11.924039)), 11.924039 / 2.461532);
 });
 
 test("ratio-value rows and exclusion rows keep matching lengths", () => {
@@ -152,7 +145,7 @@ test("ratio-value rows and exclusion rows keep matching lengths", () => {
   assert.deepEqual(ratioValues[0], []);
   // The second origin develops once and then holds zero, so its one ratio is
   // followed by nothing rather than by a ratio of zero.
-  assert.deepEqual(ratioValues[1], [4.844154]);
+  assert.deepEqual(ratioValues[1], [11.924039 / 2.461532]);
   assert.deepEqual(ratioValues[2], [2, 2, 2]);
   assert.deepEqual(pattern[2], [1, 0, 0]);
 });

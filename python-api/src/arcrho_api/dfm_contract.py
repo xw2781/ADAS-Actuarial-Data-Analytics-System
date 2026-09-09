@@ -490,7 +490,13 @@ def normalize_dfm_method(
 
     ratio_origin_labels = _labels(ratio_source.get("origin_labels")) or list(origin_labels)
     ratio_dev_labels = _labels(ratio_source.get("development_labels"))
-    ratio_values = [_trim_trailing_nulls(row) for row in _number_matrix(ratio_source.get("ratio_values"))]
+    # A ratio is stored with every digit the division produced, like the
+    # triangle it divides. Six decimals were enough to read the number but not
+    # to divide it again, so a consumer that re-used the stored ratio worked
+    # from a rounded copy of the one the page had.
+    ratio_values = [
+        _trim_trailing_nulls(row) for row in _input_number_matrix(ratio_source.get("ratio_values"))
+    ]
     excluded = _int_matrix(ratio_source.get("excluded"))
 
     formula_labels = _labels(formulas_source.get("label"))
@@ -1355,7 +1361,7 @@ def _calculate_ratio_triangle(values: list[list[Any]], mask: list[list[bool]], d
             if left in (None, 0) or right in (None, 0):
                 row.append(None)
             else:
-                row.append(canonical_number(float(right) / float(left)))
+                row.append(canonical_input_number(float(right) / float(left)))
         out.append(_trim_trailing_nulls(row))
     return out
 

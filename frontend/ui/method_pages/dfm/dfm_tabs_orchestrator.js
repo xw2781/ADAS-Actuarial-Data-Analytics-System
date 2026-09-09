@@ -40,7 +40,7 @@ import {
   isRatioChartOpen,
   scheduleRatioChartRender,
   restoreRatioHistoryUi,
-} from "/ui/method_pages/dfm/dfm_ratios_tab.js?v=20260909b";
+} from "/ui/method_pages/dfm/dfm_ratios_tab.js?v=20260909c";
 import {
   renderResultsTable,
   wireResultsRatioBasisControls,
@@ -70,7 +70,7 @@ import {
   stopDfmMethodFileWatcher,
   scheduleDfmMethodPreview,
   cancelDfmMethodAsyncTasks,
-} from "/ui/method_pages/dfm/dfm_persistence.js?v=20260907a";
+} from "/ui/method_pages/dfm/dfm_persistence.js?v=20260909c";
 import { wireRatioSyncChannel, requestRatioStateSync } from "/ui/method_pages/dfm/dfm_sync.js?v=20260907a";
 import { wireDfmRpcBridgeTabBar } from "/ui/method_pages/dfm/dfm_rpc_bridge_tabbar.js?v=20260907a";
 import { reviewArcBotDfmEditApproval } from "/ui/method_pages/dfm/dfm_rpc_bridge_client.js?v=20260907a";

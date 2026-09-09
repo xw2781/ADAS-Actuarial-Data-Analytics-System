@@ -837,7 +837,11 @@ def export_dfm(
             val = _get_ratio_value(dfm, i, j)
             if strict and val is None:
                 raise RuntimeError(f"Could not read ResQ DFM ratio at ({i}, {j}).")
-            rv_row.append(round(val, decimal_places) if val is not None else 0)
+            # The ratio comes across with every digit ResQ holds. Decimal
+            # Places says how many the Ratios tab prints, never how many the
+            # file keeps, and trimming here left the imported triangle coarser
+            # than the one ArcRho divides for itself.
+            rv_row.append(canonical_input_number(val) if val is not None else 0)
             try:
                 ex_row.append(_excluded_ratio_flag(dfm.ExcludedRatios(i, j)))
             except Exception as exc:

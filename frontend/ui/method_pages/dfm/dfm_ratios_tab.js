@@ -6,7 +6,7 @@ drag reorder, column activation, strike toggling
 */
 import {
   state,
-  calcRatio, ratioNumberOrNull, persistedRatioOrNull, roundRatio, formatRatio,
+  calcRatio, ratioNumberOrNull, persistedRatioOrNull, formatRatio,
   ratioStrikeSet, activeRatioCols, selectedSummaryByCol, summaryRowConfigs,
   getRatioColAllActive, setRatioColAllActive,
   getShowNaBorders, setShowNaBorders,
@@ -1022,10 +1022,9 @@ export function renderRatioTable() {
           const exactRatio = calcRatio(vals?.[r]?.[c], vals?.[r]?.[c + 1]);
           const ratio = Number.isFinite(persistedRatio) ? persistedRatio : exactRatio;
           if (Number.isFinite(ratio)) {
-            const rounded = roundRatio(ratio, 6);
-            td.textContent = formatRatio(rounded, getDfmDecimalPlaces());
-            // The file keeps the ratio at six decimals; a copy takes the one
-            // the triangle divides to.
+            td.textContent = formatRatio(ratio, getDfmDecimalPlaces());
+            // The cell prints at the Details tab's Decimal Places; a copy takes
+            // the ratio whole, the way the file now keeps it.
             td.dataset.copyValue = String(exactRatio ?? ratio);
             td.classList.remove("ratioPlaceholder");
           } else {

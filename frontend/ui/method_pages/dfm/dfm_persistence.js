@@ -39,7 +39,6 @@ import {
   getRatioHeaderLabels,
   calcRatio,
   ratioNumberOrNull,
-  roundRatio,
   computeAverageForColumn,
   buildExcludedSetForColumn,
 } from "/ui/method_pages/dfm/dfm_state.js";
@@ -71,7 +70,7 @@ import {
   applyPersistedRatioDerivedSnapshot,
   renderRatioTable,
   queueDfmExternalChangeHighlights,
-} from "/ui/method_pages/dfm/dfm_ratios_tab.js?v=20260909b";
+} from "/ui/method_pages/dfm/dfm_ratios_tab.js?v=20260909c";
 import {
   applyPersistedResultsSnapshot,
   ensureResultsRatioBasisAligned,
@@ -191,7 +190,6 @@ let dfmPreviewGeneration = 0;
 let dfmPreviewAbortController = null;
 const DFM_INSTANCE_PRESENCE_EVENT = "arcrho:dfm-instance-presence";
 const DFM_LOCAL_LOOKUP_DEBUG_STATUS = true; // Temporary debug aid.
-const DFM_ANALYSIS_DECIMALS = 6;
 const DFM_METHOD_FILE_WATCH_INTERVAL_MS = 2000;
 
 function decodeFileNameSegment(value) {
@@ -742,8 +740,12 @@ function buildRatioDisplayHeaderLabels(devs) {
 // A cell with no ratio must stay null here: the exclusion pattern writes its 2
 // sentinel for the same cell, and a ratio of 0 in its place leaves the two rows
 // trimming to different lengths, which strict validation rejects.
-function roundAnalysisValue(value) {
-  return roundRatio(ratioNumberOrNull(value), DFM_ANALYSIS_DECIMALS);
+//
+// The ratio itself is stored with every digit the division produced, the way
+// the triangle it divides is stored, so the file holds the number the page
+// calculated rather than a copy trimmed to six decimals.
+function analysisValue(value) {
+  return ratioNumberOrNull(value);
 }
 
 function trimTrailingNulls(row) {
@@ -779,7 +781,7 @@ function buildCalculatedRatioTriangleValues() {
         row.push(null);
         continue;
       }
-      row.push(roundAnalysisValue(calcRatio(values?.[r]?.[c], values?.[r]?.[c + 1])));
+      row.push(analysisValue(calcRatio(values?.[r]?.[c], values?.[r]?.[c + 1])));
     }
     out.push(trimTrailingNulls(row));
   }
