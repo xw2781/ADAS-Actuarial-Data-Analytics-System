@@ -81,15 +81,13 @@ test("SQL editors run against a connection and reconnect instead of restarting",
   assert.match(sqlMode, /arcode:database-connections-changed/);
 });
 
-test("the Arcode shell routes engine-named .sql files to their SQL editor", () => {
+test("the Arcode shell routes every .sql file to a SQL editor", () => {
   const shell = read("../ui/arcode/main.js");
 
+  // A Snowflake name still claims its file; every other `.sql` is SQL Server,
+  // so no query lands in the plain editor where Run cannot reach an engine.
   assert.match(shell, /function isSqlServerSqlPath\(pathLike\)/);
-  assert.match(shell, /name\.includes\("sql_server"\)/);
-  assert.match(shell, /name\.includes\("mssql"\)/);
-  assert.match(shell, /name\.endsWith\("\.ms\.sql"\)/);
-  // Snowflake still wins for a file that names both engines.
-  assert.match(shell, /if \(getPathExtension\(pathLike\) !== "\.sql" \|\| isSnowflakeSqlPath\(pathLike\)\) return false;/);
+  assert.match(shell, /return getPathExtension\(pathLike\) === "\.sql" && !isSnowflakeSqlPath\(pathLike\);/);
   assert.match(shell, /if \(isSnowflakeSqlPath\(filePath\)\) return "snowflake";\s*\n\s*if \(isSqlServerSqlPath\(filePath\)\) return "sqlserver";/);
 
   // Both SQL tab types share one frame builder and one open-path message.

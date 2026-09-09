@@ -182,8 +182,8 @@ page = createEditorPage({
   run: ({ code, selectionOnly }) => (
     !selectionOnly && isArcRhoMacroSource(code) ? runInArcRho(code) : runPython(code)
   ),
-  // An unmarked `.sql` file stays in this editor, so ArcBot still needs the
-  // dialect the shared skill infers for it.
+  // A `.sql` file opens in a SQL editor now, but one saved here under that
+  // name still shows SQL, so ArcBot keeps the dialect the shared skill infers.
   assistantContext: (editorPage) => (
     editorPage.language() === "sql"
       ? { sqlDialect: inferSqlDialect({ pageType: "code-editor", path: editorPage.path }) }

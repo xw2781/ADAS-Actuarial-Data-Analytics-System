@@ -1556,16 +1556,11 @@ function isSnowflakeSqlPath(pathLike) {
   return getPathExtension(pathLike) === ".sql" && (name.includes("snowflake") || name.endsWith(".sf.sql"));
 }
 
-// A `.sql` file names its engine the same way a Snowflake file does, because
-// the extension alone cannot say which server the query belongs to. Other
-// `.sql` files stay in the plain code editor.
+// Every `.sql` file belongs in a SQL editor, where Run reaches an engine, so
+// SQL Server takes each one a Snowflake name has not already claimed. A file
+// no longer has to name its engine to escape the plain code editor.
 function isSqlServerSqlPath(pathLike) {
-  const name = filenameFromPath(pathLike).toLowerCase();
-  if (getPathExtension(pathLike) !== ".sql" || isSnowflakeSqlPath(pathLike)) return false;
-  return name.includes("sql_server")
-    || name.includes("sqlserver")
-    || name.includes("mssql")
-    || name.endsWith(".ms.sql");
+  return getPathExtension(pathLike) === ".sql" && !isSnowflakeSqlPath(pathLike);
 }
 
 function isSqlConsoleTabType(tabType) {

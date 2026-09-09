@@ -687,7 +687,7 @@ test("changed theme and chart owners are reached through current cache-version c
     ["../ui/arcode/sql-server-console/index.js", "shared/sql_mode.js?v=20260818a"],
     ["../ui/arcode/shared/sql_mode.js", "./editor_framework.js?v=20260818a"],
     ["../ui/arcode/shared/sql_mode.js", "./sql_engines.js?v=20260818a"],
-    ["../ui/arcode/main.html", "main.js?v=20260818a"],
+    ["../ui/arcode/main.html", "main.js?v=20260909a"],
     ["../ui/arcode/main.js", "database-connections/dialog.js?v=20260818a"],
     ["../ui/arcode/database-connections/dialog.js", "../shared/sql_engines.js?v=20260818a"],
   ];
