@@ -1,7 +1,7 @@
 # <arcrho-macro>
 # Title: Apply Growth and Cutoff Adjustments
-# Version: 1.4.1
-# Release Note: The adjusted value is stored with every digit it has instead of being trimmed to six decimals, so the number in the User Entry cell is exactly what its own formula evaluates to.
+# Version: 1.4.0
+# Release Note: The formula the macro writes names its own rounding again, ROUND("row", 4) around the DFM's average row only, because an average row now enters a formula with every digit it holds; the growth and cutoff vectors are already stored at four decimals and are multiplied in as they stand.
 # Description: Write the combined growth and accounting cutoff adjustment into the active
 #   DFM's User Entry row as a live in-cell formula, for example
 #   = ROUND("Simple - 2", 4) * [Accounting Cutoff][-1] * [Growth Adjustment--Counts][-1].
@@ -404,11 +404,7 @@ def plan_adjustments(
             "base_label": candidate["base_label"],
             "formula": adjustment_formula(candidate["base_label"], terms, candidate["col"]),
             "display_formula": " ".join([opening] + display_parts),
-            # The only rounding the adjustment applies is the one its formula
-            # names, ROUND("row", 4) around the average row. The product itself
-            # is stored with every digit it has, so the number beside the
-            # formula is the number the formula evaluates to.
-            "value": base_value * factor,
+            "value": round(base_value * factor, 6),
             "base_value": base_value,
         })
     return {"plans": plans, "skipped": skipped, "errors": errors, "grid_mismatch": ""}

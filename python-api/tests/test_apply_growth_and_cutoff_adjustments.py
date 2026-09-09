@@ -227,7 +227,7 @@ class FormulaTests(unittest.TestCase):
             first["display_formula"],
             '= ROUND("Simple - 2", 4) * [Accounting Cutoff][2026] * [Growth Adjustment--Counts][2026]',
         )
-        self.assertAlmostEqual(first["value"], round(4.0 * 1.0117 * 1.0426, 6))
+        self.assertAlmostEqual(first["value"], 4.0 * (1.0117 * 1.0426), places=12)
 
     def test_the_average_factor_enters_the_product_rounded_to_four_decimals(self):
         # 1.35735 reads as 1.3574 in the notes, so 1.3574 is what the vectors
@@ -237,7 +237,7 @@ class FormulaTests(unittest.TestCase):
         _basis, result = plan(dfm)
         first = result["plans"][0]
         self.assertEqual(first["base_value"], 1.3574)
-        self.assertAlmostEqual(first["value"], round(1.3574 * 1.0117 * 1.0426, 6))
+        self.assertAlmostEqual(first["value"], 1.3574 * (1.0117 * 1.0426), places=12)
 
     def test_a_period_whose_factors_are_all_one_is_skipped(self):
         dfm = FakeDfm(selected_row=2)
@@ -282,7 +282,9 @@ class FormulaTests(unittest.TestCase):
             '= ROUND("Simple - 3", 4) * [Growth Adjustment--Incurred][-1]'
             ' / [Growth Adjustment--Counts][-1]',
         )
-        self.assertAlmostEqual(result["plans"][0]["value"], round(3.0 * 1.0438 / 1.0426, 6))
+        self.assertAlmostEqual(
+            result["plans"][0]["value"], 3.0 * (1.0438 * (1.0 / 1.0426)), places=12
+        )
 
 
 class BaseRowRecoveryTests(unittest.TestCase):
@@ -303,7 +305,9 @@ class BaseRowRecoveryTests(unittest.TestCase):
         dfm = FakeDfm(selected_row=USER_ENTRY_ROW, notes=self.NOTES)
         _basis, result = plan(dfm)
         self.assertEqual(result["plans"][0]["base_label"], "Simple - 2")
-        self.assertAlmostEqual(result["plans"][0]["value"], round(4.0 * 1.0117 * 1.0426, 6))
+        self.assertAlmostEqual(
+            result["plans"][0]["value"], 4.0 * (1.0117 * 1.0426), places=12
+        )
 
     def test_a_user_entry_value_with_no_note_is_left_alone(self):
         dfm = FakeDfm(selected_row=USER_ENTRY_ROW)
