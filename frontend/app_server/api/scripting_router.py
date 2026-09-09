@@ -100,6 +100,11 @@ def scripting_install_library_macro(req: ScriptMacroLibraryInstallRequest) -> Di
     return macro_library_service.install_library_macro(req.macro_id, overwrite=req.overwrite)
 
 
+@router.post("/scripting/macro-library/sync")
+def scripting_sync_library_macros() -> Dict[str, Any]:
+    return macro_library_service.sync_library_updates()
+
+
 @router.post("/scripting/run-macro")
 def scripting_run_macro(req: ScriptMacroRunRequest) -> Dict[str, Any]:
     return scripting_macro_service.run_macro(

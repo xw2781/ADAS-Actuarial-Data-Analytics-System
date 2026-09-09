@@ -343,15 +343,20 @@ print(f"restored={sys.gettrace() is trace_before}")
             check_macro_cancelled()
 
     def test_registered_macro_delegates_to_canonical_source_runner(self) -> None:
+        from app_server.services import macro_library_service
+
         with (
             patch.object(scripting_macro_service, "_safe_macro_path", return_value=r"E:\macros\registered.py"),
             patch.object(scripting_macro_service.os.path, "isfile", return_value=True),
             patch.object(Path, "read_text", return_value="def main(): pass"),
+            patch.object(macro_library_service, "sync_library_macro", return_value=None) as sync,
             patch.object(scripting_macro_service, "run_macro_source", return_value={"success": True}) as runner,
         ):
             result = scripting_macro_service.run_macro("registered.py", {"activeJson": {}})
 
         self.assertTrue(result["success"])
+        self.assertNotIn("library_update", result)
+        sync.assert_called_once_with("registered.py")
         runner.assert_called_once_with(
             "def main(): pass",
             "registered.py",
@@ -361,6 +366,25 @@ print(f"restored={sys.gettrace() is trace_before}")
             task_session_id="",
             task_mode="",
         )
+
+    def test_registered_macro_takes_the_newer_library_version_before_it_runs(self) -> None:
+        from app_server.services import macro_library_service
+
+        update = {"macro_id": "registered.py", "name": "Registered", "version": "2.0.0", "local_version": "1.0.0"}
+        order: list[str] = []
+        with (
+            patch.object(scripting_macro_service, "_safe_macro_path", return_value=r"E:\macros\registered.py"),
+            patch.object(scripting_macro_service.os.path, "isfile", return_value=True),
+            patch.object(macro_library_service, "sync_library_macro", side_effect=lambda _id: (order.append("sync"), update)[1]),
+            patch.object(Path, "read_text", side_effect=lambda *a, **k: (order.append("read"), "def main(): pass")[1]),
+            patch.object(scripting_macro_service, "run_macro_source", return_value={"success": True}),
+        ):
+            result = scripting_macro_service.run_macro("registered.py", {"activeJson": {}})
+
+        # The replacement happens before the source is read, so the copy that
+        # runs is the library version.
+        self.assertEqual(order, ["sync", "read"])
+        self.assertEqual(result["library_update"], update)
 
     def test_arcrho_bridge_captures_executes_and_applies(self) -> None:
         capture = {

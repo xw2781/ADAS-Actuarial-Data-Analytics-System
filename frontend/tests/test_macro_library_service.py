@@ -152,6 +152,57 @@ class MacroLibraryServiceTests(unittest.TestCase):
         self.assertTrue((self.macro_dir / "sample.py").is_file())
         self.assertFalse((self.macro_dir.parent / "sample.py").exists())
 
+    def test_sync_replaces_only_a_local_copy_the_library_outversions(self) -> None:
+        (self.library_dir / "newer.py").write_text(_macro_source("1.1.0"), encoding="utf-8")
+        (self.macro_dir / "newer.py").write_text(
+            _macro_source("1.0.0", body="print('edited locally')"), encoding="utf-8"
+        )
+        (self.library_dir / "current.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+        (self.macro_dir / "current.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+        (self.library_dir / "edited.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+        (self.macro_dir / "edited.py").write_text(
+            _macro_source("1.0.0", body="print('edited locally')"), encoding="utf-8"
+        )
+        (self.library_dir / "not_loaded.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+        (self.macro_dir / "mine.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+
+        result = macro_library_service.sync_library_updates()
+
+        self.assertTrue(result["available"])
+        self.assertEqual([entry["macro_id"] for entry in result["updated"]], ["newer.py"])
+        self.assertEqual(result["updated"][0]["version"], "1.1.0")
+        self.assertEqual(result["updated"][0]["local_version"], "1.0.0")
+        self.assertEqual(result["updated"][0]["name"], "Sample Macro")
+        # A local edit at the same version is not a library update, and a
+        # library macro that was never loaded is not loaded by a sync.
+        self.assertEqual((self.macro_dir / "newer.py").read_text(encoding="utf-8"), _macro_source("1.1.0"))
+        self.assertIn("edited locally", (self.macro_dir / "edited.py").read_text(encoding="utf-8"))
+        self.assertFalse((self.macro_dir / "not_loaded.py").exists())
+        self.assertEqual(macro_library_service.sync_library_updates()["updated"], [])
+
+    def test_sync_one_macro_reads_only_that_library_file(self) -> None:
+        (self.library_dir / "sample.py").write_text(_macro_source("2.0.0"), encoding="utf-8")
+        (self.macro_dir / "sample.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+        (self.library_dir / "other.py").write_text(_macro_source("2.0.0"), encoding="utf-8")
+        (self.macro_dir / "other.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+
+        result = macro_library_service.sync_library_macro("sample.py")
+
+        self.assertEqual(result["version"], "2.0.0")
+        self.assertEqual(result["local_version"], "1.0.0")
+        self.assertEqual((self.macro_dir / "sample.py").read_text(encoding="utf-8"), _macro_source("2.0.0"))
+        self.assertEqual((self.macro_dir / "other.py").read_text(encoding="utf-8"), _macro_source("1.0.0"))
+        self.assertIsNone(macro_library_service.sync_library_macro("sample.py"))
+        self.assertIsNone(macro_library_service.sync_library_macro("mine.py"))
+
+    def test_sync_one_macro_leaves_a_copy_alone_when_the_library_is_unreachable(self) -> None:
+        (self.macro_dir / "sample.py").write_text(_macro_source("1.0.0"), encoding="utf-8")
+        config.MACRO_LIBRARY_DIR = str(self.library_dir / "missing")
+        self.assertIsNone(macro_library_service.sync_library_macro("sample.py"))
+        config.MACRO_LIBRARY_DIR = ""
+        self.assertIsNone(macro_library_service.sync_library_macro("sample.py"))
+        self.assertEqual((self.macro_dir / "sample.py").read_text(encoding="utf-8"), _macro_source("1.0.0"))
+
 
 if __name__ == "__main__":
     unittest.main()

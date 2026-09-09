@@ -1067,9 +1067,15 @@ def run_macro(
     task_session_id: str = "",
     task_mode: str = "",
 ) -> Dict[str, Any]:
+    # The library module imports this one, so it is imported here rather than at
+    # module level. A newer published version replaces the local copy before the
+    # source is read, so the macro that runs is always the latest one.
+    from app_server.services import macro_library_service
+
     path = _safe_macro_path(macro_id)
     if not os.path.isfile(path):
         return {"success": False, "message": f"Macro not found: {macro_id}"}
+    library_update = macro_library_service.sync_library_macro(macro_id)
     try:
         source = Path(path).read_text(encoding="utf-8-sig")
     except Exception as exc:
@@ -1079,7 +1085,7 @@ def run_macro(
             "traceback": traceback.format_exc(),
             "path": path,
         }
-    return run_macro_source(
+    result = run_macro_source(
         source,
         os.path.basename(path),
         active_context,
@@ -1088,6 +1094,9 @@ def run_macro(
         task_session_id=task_session_id,
         task_mode=task_mode,
     )
+    if library_update:
+        result["library_update"] = library_update
+    return result
 
 
 def _consume_captured_macro_target(target: Dict[str, Any]) -> None:

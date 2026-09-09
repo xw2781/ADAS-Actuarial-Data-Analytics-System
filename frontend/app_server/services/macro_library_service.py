@@ -2,7 +2,10 @@
 
 Lists the deployer-managed read-only library folder and copies ("loads")
 selected macros into the user's local macro folder, which remains the only
-place the Macro panel runs macros from. Metadata parsing and local macro
+place the Macro panel runs macros from. A local copy the library holds a
+strictly newer version of is replaced on its own: for every loaded macro when
+the Macros panel lists them, and for the one macro about to run, so a user
+always runs the latest published version. Metadata parsing and local macro
 path safety are delegated to scripting_macro_service so there is a single
 owner for both.
 """
@@ -217,6 +220,53 @@ def install_library_macro(macro_id: str, overwrite: bool = False) -> Dict[str, A
         "success": True,
         "installed": True,
         "macro_id": os.path.basename(local_path),
+        "name": meta["title"],
         "version": meta["version"],
         "message": f"Loaded {meta['title']}{version_suffix} into your local macros.",
     }
+
+
+def sync_library_macro(macro_id: str) -> Optional[Dict[str, Any]]:
+    """Replace one local macro when the library holds a strictly newer version.
+
+    Reads only that macro's library file, so the check before a run costs one
+    share read. Returns the install result when a copy was replaced, otherwise
+    None: a macro the library does not hold, an unreachable library, a copy that
+    is current, and a local copy that differs at the same or a higher version
+    are all left alone.
+    """
+    try:
+        library_path = _safe_library_path(macro_id)
+        local_path = _safe_macro_path(macro_id)
+    except ValueError:
+        return None
+    if not os.path.isfile(local_path) or not os.path.isfile(library_path):
+        return None
+    library_text = _read_macro_file(library_path)
+    local_text = _read_macro_file(local_path)
+    if library_text is None or local_text is None:
+        return None
+    name = os.path.basename(library_path)
+    library_version = _parse_macro_metadata(library_text, name)["version"]
+    local_version = _parse_macro_metadata(local_text, name)["version"]
+    if _library_status(library_text, library_version, local_text, local_version) != STATUS_UPDATE_AVAILABLE:
+        return None
+    result = install_library_macro(macro_id, overwrite=True)
+    if not result.get("installed"):
+        return None
+    result["local_version"] = local_version
+    return result
+
+
+def sync_library_updates() -> Dict[str, Any]:
+    """Replace every local macro the library holds a strictly newer version of."""
+    listing = list_library_macros()
+    updated: List[Dict[str, Any]] = []
+    for macro in listing["macros"]:
+        if macro["status"] != STATUS_UPDATE_AVAILABLE:
+            continue
+        result = install_library_macro(macro["id"], overwrite=True)
+        if result.get("installed"):
+            result["local_version"] = macro["local_version"]
+            updated.append(result)
+    return {"available": listing["available"], "message": listing["message"], "updated": updated}

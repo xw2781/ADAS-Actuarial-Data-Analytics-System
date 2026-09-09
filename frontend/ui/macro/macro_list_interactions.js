@@ -109,9 +109,6 @@ export function initMacroListDrag(list, windowElement, { getMacro, reorder = fal
   list.addEventListener("pointerdown", (event) => {
     const item = event.target?.closest?.(".macroListItem");
     if (event.button !== 0 || !item || !list.contains(item)) return;
-    // A control sitting inside a row owns its own press: capturing the pointer
-    // on the row would retarget the click to the row and swallow it.
-    if (event.target?.closest?.(".macroListItemAction")) return;
     suppressClick = false;
     drag = { pointerId: event.pointerId, item, startX: event.clientX, startY: event.clientY, active: false, card: null, grabX: 0, grabY: 0, target: null, highlight: null };
     try { item.setPointerCapture(event.pointerId); } catch {}

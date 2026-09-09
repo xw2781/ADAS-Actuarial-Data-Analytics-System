@@ -426,38 +426,6 @@ body.macroListDragActive * {
   color: #6d28d9;
 }
 
-/* Marks a macro the shared library carries a newer version of. It is filled
-   rather than pale so it reads as a stamp beside the outlined scope tags, and
-   unlike them it is pressed to load that version, so it keeps a hover and
-   focus state of its own. */
-.macroUpdateStamp {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  height: 17px;
-  padding: 0 5px;
-  border: 1px solid #d97706;
-  border-radius: 4px;
-  background: #fcd34d;
-  color: #7c2d12;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease;
-}
-
-.macroUpdateStamp:hover {
-  border-color: #b45309;
-  background: #fbbf24;
-}
-
-.macroUpdateStamp:focus-visible {
-  outline: 2px solid #b45309;
-  outline-offset: 1px;
-}
-
 #macroLibraryWindow {
   position: fixed;
   right: 64px;

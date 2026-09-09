@@ -1,7 +1,7 @@
 import { shell } from "../shell/shell_context.js?v=20260510a";
-import { LIBRARY_STATUS_UPDATE_AVAILABLE, copyLibraryMacroToLocal, fetchLibraryMacros } from "./macro_library_client.js?v=20260902a";
+import { LIBRARY_STATUS_UPDATE_AVAILABLE, copyLibraryMacroToLocal, fetchLibraryMacros } from "./macro_library_client.js?v=20260908a";
 import { createMacroWindowFrame } from "./macro_window_frame.js?v=20260808b";
-import { initMacroListDrag, initMacroListKeyboard, syncMacroListSelection } from "./macro_list_interactions.js?v=20260902a";
+import { initMacroListDrag, initMacroListKeyboard, syncMacroListSelection } from "./macro_list_interactions.js?v=20260908a";
 
 const LIBRARY_WINDOW_FRAGMENT_URL = "/ui/macro/macro_library_window.html?v=20260731a";
 const LIBRARY_WINDOW_POSITION_KEY = "arcrho_macro_library_window_position";

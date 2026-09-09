@@ -41,3 +41,16 @@ export async function copyLibraryMacroToLocal(macroId) {
   window.dispatchEvent(new CustomEvent("arcrho:local-macros-changed"));
   return result;
 }
+
+// Replaces every local macro the library holds a strictly newer version of,
+// without asking: a shared macro is kept at its latest published version. A
+// local copy edited at the same or a higher version is not a library update
+// and stays as it is. Returns the replaced copies; the same event as a load
+// tells both windows when there were any.
+export async function syncLibraryMacros() {
+  const response = await fetch(`${API_BASE}/scripting/macro-library/sync`, { method: "POST" });
+  const result = await response.json();
+  const updated = Array.isArray(result?.updated) ? result.updated : [];
+  if (updated.length) window.dispatchEvent(new CustomEvent("arcrho:local-macros-changed"));
+  return updated;
+}

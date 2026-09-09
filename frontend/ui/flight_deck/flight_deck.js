@@ -3,7 +3,7 @@
 // window, which keeps one code path for context capture, review, and status reporting.
 
 import { getHostApi, shell } from "../shell/shell_context.js?v=20260510a";
-import { runMacroById } from "../macro/macro_window.js?v=20260902a";
+import { runMacroById } from "../macro/macro_window.js?v=20260908b";
 import { createIconElement, iconForMacro, normalizeIcon } from "./flight_deck_icons.js?v=20260906a";
 import { openFlightDeckButtonEditor } from "./flight_deck_editor.js?v=20260901b";
 import { hideDeckTooltip as hideTooltip, showDeckTooltip } from "./flight_deck_tooltip.js?v=20260901a";
@@ -267,6 +267,11 @@ function macroFor(button) {
 function buttonLabel(button) {
   const macro = macroFor(button);
   return button.label || macro?.name || button.macroId;
+}
+
+function macroScopeList(macro) {
+  const raw = macro?.scopes ?? macro?.scope ?? [];
+  return (Array.isArray(raw) ? raw : [raw]).map((value) => String(value || "").trim()).filter(Boolean);
 }
 
 /* ------------------------------------------------------------------ render */
@@ -634,7 +639,6 @@ function openDeckMenu() {
   menu.appendChild(firstSep);
   menu.appendChild(menuItem("Add Button...", "add"));
   menu.appendChild(menuItem("Open Macros Window", "open-macros"));
-  menu.appendChild(menuItem("Refresh Macros", "refresh"));
   const secondSep = document.createElement("div");
   secondSep.className = "flightDeckMenuSep";
   menu.appendChild(secondSep);
@@ -666,7 +670,6 @@ function runMenuAction(action, buttonId) {
   else if (action === "orientation-horizontal") setOrientation("horizontal");
   else if (action === "orientation-vertical") setOrientation("vertical");
   else if (action === "open-macros") shell.openMacroWindow?.();
-  else if (action === "refresh") void loadMacroIndex(true);
   else if (action === "clear") {
     if (!config.buttons.length) return;
     config.buttons = [];

@@ -2,7 +2,7 @@ import { shell } from "./shell_context.js?v=20260510a";
 import {
   captureActiveDfmContextForMacro,
   reviewAndApplyCapturedMacroResult,
-} from "../macro/macro_window.js?v=20260902a";
+} from "../macro/macro_window.js?v=20260908b";
 import { createReviewTableDialog } from "../shared/components/review_table/review_table.js?v=20260828f";
 
 const API_BASE = window.location.origin;

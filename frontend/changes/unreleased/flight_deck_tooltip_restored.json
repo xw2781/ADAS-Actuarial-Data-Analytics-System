@@ -1,0 +1,6 @@
+{
+  "type": "fix",
+  "scope": "flight-deck",
+  "audience": "user",
+  "summary": "Hovering a Flight Deck button's icon shows its label again instead of nothing."
+}

@@ -1,0 +1,11 @@
+{
+  "type": "improvement",
+  "scope": "macro",
+  "audience": "user",
+  "summary": "Shared macros now update on their own, so you always run the latest published version of a macro loaded from the shared macro library.",
+  "details": [
+    "Opening the Macros panel replaces every loaded macro the library holds a newer version of and names the updated macros in the status bar.",
+    "Running a macro, from the panel or a Flight Deck button, checks the library once more and runs the newest version.",
+    "A local copy you edited at the same or a higher version is left alone; the yellow Update stamp is gone because there is nothing left to click."
+  ]
+}
