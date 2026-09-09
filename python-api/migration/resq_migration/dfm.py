@@ -299,6 +299,67 @@ def _strip_formula_index_prefix(raw: str) -> str:
     return raw[m.end():].strip() if m else raw
 
 
+def _is_resq_user_entry_name(label: str) -> bool:
+    return label.lower().startswith("user")
+
+
+def resq_average_row_labels(raw_names: list) -> list[str]:
+    """ArcRho's label for each ResQ average row, in ResQ order.
+
+    ResQ names a row ``"10: User Entry"``; the number is its position and is
+    dropped. ResQ tells its rows apart by that position, so a DFM may hold
+    several rows all named User Entry. ArcRho tells rows apart by label -- a
+    formula, a note and a value row all name their row that way -- so the
+    repeats are numbered ``User Entry 2``, ``User Entry 3``, ... in ResQ order.
+    The Ratios tab shows the row's own number before every label, so the rows
+    still read ``10: User Entry``, ``11: User Entry 2`` the way ResQ lists them.
+    """
+
+    labels: list[str] = []
+    user_entries = 0
+    for raw in raw_names:
+        cleaned = _strip_formula_index_prefix(str(raw or ""))
+        if _is_resq_user_entry_name(cleaned):
+            user_entries += 1
+            cleaned = "User Entry" if user_entries == 1 else f"User Entry {user_entries}"
+        labels.append(cleaned)
+    return labels
+
+
+def _resq_average_formula_names(dfm, strict: bool, max_probe: int) -> list[str]:
+    """The DFM's average row names as ResQ reports them, ``"1: Volume - all"``.
+
+    ``AverageFormula`` never ends: past the last real row ResQ keeps answering
+    ``"14: User Entry"``, ``"15: User Entry"`` and so on out of unallocated
+    memory, so ``RatioAverageCount`` is the only end of the list. An older
+    ResQ that will not give the count is walked until the labels turn to
+    noise at the first User Entry row.
+    """
+
+    try:
+        count = max(int(dfm.RatioAverageCount), 0)
+    except Exception:
+        count = 0
+    names: list[str] = []
+    for idx in range(1, (count or max_probe) + 1):
+        try:
+            name = dfm.AverageFormula(idx)
+        except Exception as exc:
+            if count or strict:
+                _strict_dfm_failure(
+                    strict,
+                    f"Could not finish enumerating ResQ DFM average formulas at index {idx}.",
+                    exc,
+                )
+            break
+        if name is None:
+            break
+        names.append(str(name))
+        if not count and _is_resq_user_entry_name(_strip_formula_index_prefix(names[-1])):
+            break
+    return names
+
+
 # ResQ's AverageType enumeration, in the order the automation help lists it:
 # atCustom, atMedian, atGeoMean, atMin, atMax, atUserEntry, atCalculated,
 # atPriorAnalysis, atPattern, atBenchmark. Only the two ArcRho reads are named.
@@ -424,7 +485,6 @@ def _read_resq_curves_tab(dfm, period_count: int, *, strict: bool) -> dict:
 
 def _translate_resq_average_formula(
     formula: str,
-    resq_idx_map: list[int],
     formula_labels: list[str],
     own_row: int,
 ) -> str | None:
@@ -454,12 +514,8 @@ def _translate_resq_average_formula(
 
     def replace(match: re.Match) -> str:
         nonlocal failed
-        raw_index = int(match.group(1)) - 1
-        row = next(
-            (index for index, mapped in enumerate(resq_idx_map) if mapped == raw_index),
-            None,
-        )
-        if row is None or row == own_row:
+        row = int(match.group(1)) - 1
+        if not 0 <= row < len(formula_labels) or row == own_row:
             failed = True
             return ""
         label = _clean_name(formula_labels[row])
@@ -790,44 +846,10 @@ def export_dfm(
         ratio_values.append(rv_row)
         excluded.append(ex_row)
 
-    # Enumerate average formula names from ResQ (1-based, strip index prefix)
-    raw_names: list[str] = []
-    for idx in range(1, max_average_formula_probe + 1):
-        try:
-            f = dfm.AverageFormula(idx)
-            if f is None:
-                break
-            raw_names.append(f)
-            if strict and _strip_formula_index_prefix(f).lower().startswith("user"):
-                break
-        except Exception as exc:
-            if strict and not any(
-                _strip_formula_index_prefix(value).lower().startswith("user")
-                for value in raw_names
-            ):
-                _strict_dfm_failure(
-                    strict,
-                    f"Could not finish enumerating ResQ DFM average formulas at index {idx}.",
-                    exc,
-                )
-            break
-
-    # Deduplicate: keep only the first User Entry; record its ResQ index
-    formula_labels: list[str] = []
-    resq_idx_map: list[int] = []   # formula_labels[k] came from ResQ formula index resq_idx_map[k]+1
-    user_entry_seen = False
-    for list_idx, raw in enumerate(raw_names):
-        cleaned = _strip_formula_index_prefix(raw)
-        is_user = cleaned.lower().startswith("user")
-        if is_user:
-            if not user_entry_seen:
-                user_entry_seen = True
-                formula_labels.append("User Entry")
-                resq_idx_map.append(list_idx)
-        else:
-            formula_labels.append(cleaned)
-            resq_idx_map.append(list_idx)
-
+    # Every real average row, in ResQ order; row k is ResQ's formula k + 1.
+    formula_labels = resq_average_row_labels(
+        _resq_average_formula_names(dfm, strict, max_average_formula_probe)
+    )
     n_formulas = len(formula_labels)
 
     # ResQ's "User Calculation" rows: an average defined as arithmetic over the
@@ -836,13 +858,11 @@ def export_dfm(
     # formula, so each one is imported as a User Entry row under its ResQ name
     # with the formula rewritten into ArcRho's own reference syntax.
     calculated_formulas: dict[int, str] = {}
-    definitions = [_read_resq_average_definition(dfm, raw_idx_0 + 1) for raw_idx_0 in resq_idx_map]
+    definitions = [_read_resq_average_definition(dfm, row + 1) for row in range(n_formulas)]
     for row, definition in enumerate(definitions):
         if definition["average_type"] != RESQ_AVERAGE_TYPE_CALCULATED:
             continue
-        translated = _translate_resq_average_formula(
-            definition["formula"], resq_idx_map, formula_labels, row
-        )
+        translated = _translate_resq_average_formula(definition["formula"], formula_labels, row)
         if translated:
             calculated_formulas[row] = translated
         else:
@@ -859,15 +879,9 @@ def export_dfm(
         except Exception as exc:
             _strict_dfm_failure(strict, f"Could not read the selected ResQ DFM average at column {j}.", exc)
             continue
-        # sel is 1-based index into raw_names; find in resq_idx_map
-        raw_idx_0 = sel - 1  # 0-based into raw_names
-        matched = False
-        for k, mapped_raw_idx in enumerate(resq_idx_map):
-            if mapped_raw_idx == raw_idx_0:
-                selected[k][j - 1] = 1
-                matched = True
-                break
-        if strict and not matched:
+        if 1 <= sel <= n_formulas:
+            selected[sel - 1][j - 1] = 1
+        elif strict:
             raise RuntimeError(
                 f"ResQ DFM selected average index {sel} at column {j} was not present "
                 "in the enumerated formula list."
@@ -882,8 +896,8 @@ def export_dfm(
     # Decimal Places would make the chain reproduce the printed number instead
     # of ResQ's. The Ratios tab still prints it at the display precision.
     values: list[list] = []
-    for k, raw_idx_0 in enumerate(resq_idx_map):
-        resq_formula_idx = raw_idx_0 + 1  # back to 1-based
+    for k in range(n_formulas):
+        resq_formula_idx = k + 1
         row: list = []
         for j in dev_rng:
             if j == dev_count:

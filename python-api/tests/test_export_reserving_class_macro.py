@@ -20,11 +20,14 @@ from unittest.mock import Mock, patch
 _PYTHON_API_ROOT = Path(__file__).resolve().parents[1]
 _MACRO_PATH = _PYTHON_API_ROOT / "macros" / "export_reserving_class_to_resq.py"
 _SRC_DIR = _PYTHON_API_ROOT / "src"
-if str(_SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(_SRC_DIR))
+_MIGRATION_DIR = _PYTHON_API_ROOT / "migration"
+for _path in (_SRC_DIR, _MIGRATION_DIR):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
 
 import arcrho_api  # noqa: E402
 from arcrho_api import resq_sync_queue, ui as ui_module  # noqa: E402
+from resq_migration.dfm import resq_average_row_labels  # noqa: E402
 
 
 def _load_macro():
@@ -35,7 +38,12 @@ def _load_macro():
 
 
 def _migration(**fields):
-    values = {"CONNECTION_NAME": "ResQ", "USER_NAME": "user", "PASSWORD": "secret"}
+    values = {
+        "CONNECTION_NAME": "ResQ",
+        "USER_NAME": "user",
+        "PASSWORD": "secret",
+        "resq_average_row_labels": resq_average_row_labels,
+    }
     values.update(fields)
     return types.SimpleNamespace(**values)
 
@@ -543,13 +551,35 @@ class ExportMacroAverageFormulaTests(unittest.TestCase):
     def test_a_phantom_user_entry_row_past_the_count_is_never_evaluated(self):
         self._exporter()._probe_dfm_averages(self._resq_dfm())
 
-    def test_the_repeated_user_entry_rows_collapse_onto_the_first(self):
+    def test_the_repeated_user_entry_rows_are_numbered_the_way_the_import_names_them(self):
         indexes = self._exporter()._average_formula_display_indexes(self._resq_dfm())
 
         self.assertEqual(indexes["User Entry"], 10)
+        self.assertEqual(indexes["User Entry 2"], 11)
+        self.assertEqual(indexes["User Entry 3"], 12)
         self.assertEqual(indexes["Aug 2024"], 13)
         self.assertEqual(indexes["Volume - all"], 1)
-        self.assertEqual(len(indexes), 11)
+        self.assertEqual(len(indexes), 13)
+
+    def test_every_user_entry_row_is_written_to_its_own_resq_row(self):
+        exporter = self._exporter()
+        dfm = self._resq_dfm()
+        dfm.OriginCount = 2
+        dfm.DevelopmentCount.side_effect = lambda _origin: 3
+        payload = {"ratios_tab": {"average_formulas": {
+            "label": ["Volume - all", "User Entry", "User Entry 2", "User Entry 3", "Aug 2024"],
+            "custom_average_formula_settings": {
+                "average_type": ["custom", "user_entry", "user_entry", "user_entry", "custom"],
+            },
+            "values": [[1.0, 1.0, 1.0], [1.25, 1.1, 1.0], [1.3, 1.2, 1.0], [1.35, 0, 1.0], [1.0, 1.0, 1.0]],
+        }}}
+
+        self.assertEqual(exporter._sync_dfm_user_entry_values(dfm, payload), 5)
+        dfm.SetUserRatios.assert_any_call(DevIndex=1, AvgIndex=10, arg2=1.25)
+        dfm.SetUserRatios.assert_any_call(DevIndex=2, AvgIndex=10, arg2=1.1)
+        dfm.SetUserRatios.assert_any_call(DevIndex=1, AvgIndex=11, arg2=1.3)
+        dfm.SetUserRatios.assert_any_call(DevIndex=2, AvgIndex=11, arg2=1.2)
+        dfm.SetUserRatios.assert_any_call(DevIndex=1, AvgIndex=12, arg2=1.35)
 
     def test_a_label_after_the_user_entry_rows_can_still_be_selected(self):
         exporter = self._exporter()

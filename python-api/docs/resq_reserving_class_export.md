@@ -269,8 +269,11 @@ the writer relies on:
   unallocated memory, and evaluating one of those rows crashes in
   `ResQ3Automation.dll` — which skipped every DFM in the class as
   `resq_average_unreadable` until the walk was bounded by the count. The rows
-  are read through `RatioAverageCount`, and the repeated `User Entry` rows are
-  collapsed onto the first exactly as the import collapses them.
+  are read through `RatioAverageCount` by the import and the export alike, and
+  both name them through `resq_migration.dfm.resq_average_row_labels`: the
+  repeated `User Entry` rows become `User Entry`, `User Entry 2`, `User Entry
+  3` in ResQ order, because ArcRho tells its rows apart by label where ResQ
+  uses the position.
 - **Template-implementation methods are locked.** Structurally changing a
   method that belongs to a ResQ reserving-class template fails with "it is
   part of the ... template implementation". Value and selection writes and a
@@ -294,11 +297,12 @@ ResQ COM API:
    (8/9) or Bootstrap (6) is unknown, which is one reason those are saved
    rather than created.
 3. The User Entry average row is documented as row 11; this database has three
-   of them, rows 10-12, and ArcRho keeps only the first. The writer resolves
-   the row dynamically via `AverageFormula` labels, never by fixed index, and
-   writes User Entry factors to the first row only. Which of the three a ResQ
-   user has actually filled in is not visible to the writer, so a selection
-   ArcRho holds as User Entry always comes back as row 10.
+   of them, rows 10-12, which ArcRho imports as `User Entry`, `User Entry 2`
+   and `User Entry 3`. The writer resolves each row dynamically via
+   `AverageFormula` labels, never by fixed index: the row ArcRho holds as
+   ResQ's own User Entry goes to the first ResQ User Entry row even when it
+   was renamed, and every further User Entry row goes to the ResQ row its
+   import name points at.
 4. No bulk/SafeArray write path exists; every cell is one COM round trip.
 5. There is no explicit `Recalculate`; recalculation appears synchronous on
    property set and on `Save()`, but save-failure semantics (partial

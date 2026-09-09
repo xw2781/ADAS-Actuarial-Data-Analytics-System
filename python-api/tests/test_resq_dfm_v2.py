@@ -316,31 +316,66 @@ class ResqDfmV2Tests(unittest.TestCase):
 
     def test_resq_user_calculation_formula_translates_to_arcrho_references(self) -> None:
         labels = ["Volume - all", "Simple - 5", "Simple - 3", "Benchmark", "User Entry"]
-        index_map = list(range(5))
         translate = migration_dfm._translate_resq_average_formula
 
         self.assertEqual(
-            translate("(Average(2)+Average(3))/2", index_map, labels, 3),
+            translate("(Average(2)+Average(3))/2", labels, 3),
             '=("Simple - 5"+"Simple - 3")/2',
         )
         self.assertEqual(
-            translate("(Average(1) + 2 * Average(2))/3", index_map, labels, 3),
+            translate("(Average(1) + 2 * Average(2))/3", labels, 3),
             '=("Volume - all" + 2 * "Simple - 5")/3',
         )
         # A row ArcRho never imported, a self reference, a bare constant and
         # anything beyond arithmetic all decline rather than mistranslate.
-        self.assertIsNone(translate("(Average(2)+Average(9))/2", index_map, labels, 3))
-        self.assertIsNone(translate("(Average(4)+Average(2))/2", index_map, labels, 3))
-        self.assertIsNone(translate("1", index_map, labels, 3))
-        self.assertIsNone(translate("Min(Average(1),Average(2))", index_map, labels, 3))
-        self.assertIsNone(translate("", index_map, labels, 3))
+        self.assertIsNone(translate("(Average(2)+Average(9))/2", labels, 3))
+        self.assertIsNone(translate("(Average(4)+Average(2))/2", labels, 3))
+        self.assertIsNone(translate("1", labels, 3))
+        self.assertIsNone(translate("Min(Average(1),Average(2))", labels, 3))
+        self.assertIsNone(translate("", labels, 3))
 
     def test_translation_declines_when_the_named_row_label_is_ambiguous(self) -> None:
         labels = ["Simple - 5", "Simple - 5", "Benchmark"]
         self.assertIsNone(
-            migration_dfm._translate_resq_average_formula(
-                "Average(1)*2", [0, 1, 2], labels, 2
-            )
+            migration_dfm._translate_resq_average_formula("Average(1)*2", labels, 2)
+        )
+
+    def test_resq_average_rows_are_read_to_the_count_and_repeated_user_entry_rows_are_numbered(self) -> None:
+        """ResQ lists three User Entry rows and a reserving-class row after them.
+
+        ``AverageFormula`` never ends -- past the real rows ResQ keeps naming
+        phantom User Entry rows -- so the walk stops at ``RatioAverageCount``.
+        ArcRho keys a row by its label, so the repeats are numbered in ResQ order
+        and the Ratios tab shows ``10: User Entry``, ``11: User Entry 2``.
+        """
+        resq_names = [
+            "1: Volume - all", "2: Simple - 8", "3: Volume - 8", "4: Simple - 8 Ex hi/lo",
+            "5: Simple - 5", "6: Simple - 3", "7: Simple - 5 Ex hi/lo", "8: Benchmark",
+            "9: Simple - 2", "10: User Entry", "11: User Entry", "12: User Entry", "13: Aug 2024",
+        ]
+
+        class _Dfm:
+            RatioAverageCount = len(resq_names)
+
+            def AverageFormula(self, index):
+                return resq_names[index - 1] if index <= len(resq_names) else f"{index}: User Entry"
+
+        names = migration_dfm._resq_average_formula_names(_Dfm(), strict=True, max_probe=30)
+        self.assertEqual(names, resq_names)
+        self.assertEqual(
+            migration_dfm.resq_average_row_labels(names)[7:],
+            ["Benchmark", "Simple - 2", "User Entry", "User Entry 2", "User Entry 3", "Aug 2024"],
+        )
+
+        # An older ResQ that gives no count is walked until the labels turn to noise.
+        class _OldDfm(_Dfm):
+            @property
+            def RatioAverageCount(self):
+                raise AttributeError("RatioAverageCount")
+
+        self.assertEqual(
+            migration_dfm._resq_average_formula_names(_OldDfm(), strict=False, max_probe=30),
+            resq_names[:10],
         )
 
     def test_resq_average_definition_reads_type_and_formula(self) -> None:

@@ -1,7 +1,7 @@
 # <arcrho-macro>
 # Title: Export Reserving Class to ResQ
-# Version: 2.12.0
-# Release Note: Every User Entry row of a ResQ DFM is written, not only the first: the import now numbers the repeats "User Entry 2", "User Entry 3" in ResQ order, and the export writes each one's factors and tail to its own ResQ row.
+# Version: 2.11.0
+# Release Note: A hand-entered triangle whose figures ResQ keeps by a different origin period is now written instead of skipped: the export empties the ResQ dataset, saves it and reads it back, which lets ResQ move the period the figures are kept by, and then writes them at the period ArcRho keeps them by.
 # Description: Push the datasets and methods you tick from the reserving class selected in the active Project Instance page into ResQ: input datasets with their Notes, DFM ratio, tail and Curves-tab selections, Result Selection and B&S Case Reserve Adequacy selections and Notes, and a save of every Bornhuetter Ferguson, Cape Cod and B&S Settlement Rate method, in ArcRho's dependency order.
 # Scope: Reserving Class
 # Icon: upload
@@ -664,28 +664,32 @@ class ResQReservingClassExporter:
 
         A ResQ DFM repeats the User Entry row -- three of them sit between
         ``Simple - 2`` and the reserving class's own ``Aug 2024`` in the fake
-        project. The labels are the ones the import gives those rows, so the
-        repeats read ``User Entry 2``, ``User Entry 3`` and each ArcRho row
-        finds its own ResQ row. The walk stops at the DFM's real row count;
-        the phantom ``User Entry`` rows ResQ reports past the end would
-        otherwise hide every label that follows the first one.
+        project -- and ArcRho keeps only the first, so the repeats are dropped
+        here the same way the import drops them. The walk stops at the DFM's
+        real row count; the phantom ``User Entry`` rows ResQ reports past the
+        end would otherwise hide every label that follows the first one.
         """
 
         count = self._average_formula_count(dfm)
-        raw_names = []
+        out = {}
+        user_entry_seen = False
         for api_index in range(1, (count or MAX_AVERAGE_FORMULA_PROBE) + 1):
             try:
-                raw_names.append(str(dfm.AverageFormula(api_index)))
+                raw_name = str(dfm.AverageFormula(api_index))
             except Exception:
                 break
-            if not count and _is_user_entry_label(_strip_formula_index(raw_names[-1])):
+            match = re.match(r"^\s*(\d+)\s*:\s*(.*?)\s*$", raw_name)
+            if match:
+                display_index, label = int(match.group(1)), match.group(2)
+            else:
+                display_index, label = api_index, raw_name.strip()
+            is_user_entry = _is_user_entry_label(label)
+            if not (is_user_entry and user_entry_seen):
+                out.setdefault(label, display_index)
+            user_entry_seen = user_entry_seen or is_user_entry
+            if not count and is_user_entry:
                 # No count to bound the walk: stop where the labels turn to noise.
                 break
-        out = {}
-        labels = self.migration.resq_average_row_labels(raw_names)
-        for api_index, (raw_name, label) in enumerate(zip(raw_names, labels), start=1):
-            match = re.match(r"^\s*(\d+)\s*:", raw_name)
-            out.setdefault(label, int(match.group(1)) if match else api_index)
         return out
 
     def _user_entry_payload_row_index(self, average_formulas):
@@ -728,41 +732,30 @@ class ResQReservingClassExporter:
         values = average_formulas.get("values")
         if not isinstance(values, list):
             return 0
-        display_indexes = self._average_formula_display_indexes(dfm)
-        user_entry_indexes = {
-            label: display_index
-            for label, display_index in display_indexes.items()
-            if _is_user_entry_label(label)
-        }
-        if not user_entry_indexes:
+        row_index = self._user_entry_payload_row_index(average_formulas)
+        if row_index is None or row_index >= len(values) or not isinstance(values[row_index], list):
             return 0
-        # ResQ's own User Entry row takes the row ArcRho holds as such, even
-        # when that row was renamed; every further User Entry row of the DFM
-        # is matched to its own ArcRho row by the label the import gave it.
-        rows = {}
-        primary_row = self._user_entry_payload_row_index(average_formulas)
-        if primary_row is not None:
-            rows[primary_row] = next(iter(user_entry_indexes.values()))
-        labels = average_formulas.get("label") if isinstance(average_formulas.get("label"), list) else []
-        for row_index, label in enumerate(labels):
-            display_index = user_entry_indexes.get(str(label))
-            if display_index is not None and row_index not in rows and display_index not in rows.values():
-                rows[row_index] = display_index
+        display_indexes = self._average_formula_display_indexes(dfm)
+        avg_index = None
+        for label, display_index in display_indexes.items():
+            normalized = _label_key(label)
+            if normalized == "user entry" or normalized.startswith("user entry "):
+                avg_index = display_index
+                break
+        if avg_index is None:
+            return 0
         # The last column is the "- Ult" tail, which is the row's TailFactor
         # rather than a user ratio; ``_sync_dfm_tail_factors`` writes it.
         column_count = self._dfm_development_column_count(dfm) - 1
         updates = 0
-        for row_index, avg_index in rows.items():
-            if row_index >= len(values) or not isinstance(values[row_index], list):
+        for development_index, raw_value in enumerate(values[row_index], start=1):
+            if development_index > column_count:
+                break
+            value = _safe_number(raw_value)
+            if value is None or value <= 0:
                 continue
-            for development_index, raw_value in enumerate(values[row_index], start=1):
-                if development_index > column_count:
-                    break
-                value = _safe_number(raw_value)
-                if value is None or value <= 0:
-                    continue
-                dfm.SetUserRatios(DevIndex=development_index, AvgIndex=avg_index, arg2=value)
-                updates += 1
+            dfm.SetUserRatios(DevIndex=development_index, AvgIndex=avg_index, arg2=value)
+            updates += 1
         return updates
 
     def _sync_dfm_tail_factors(self, dfm, payload):

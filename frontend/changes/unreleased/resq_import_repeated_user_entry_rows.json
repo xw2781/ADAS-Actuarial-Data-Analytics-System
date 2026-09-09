@@ -1,0 +1,10 @@
+{
+  "type": "fix",
+  "scope": "resq import",
+  "audience": "user",
+  "summary": "A ResQ DFM with several User Entry rows now imports every one of them, named User Entry, User Entry 2, User Entry 3 in ResQ order, and the averages listed after them are no longer lost.",
+  "details": [
+    "The import reads the row count ResQ reports instead of stopping at the first User Entry row.",
+    "The export writes each User Entry row's factors and tail to its own ResQ row."
+  ]
+}
