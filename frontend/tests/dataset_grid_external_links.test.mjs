@@ -89,7 +89,7 @@ interactionSource = interactionSource
     JSON.stringify(dataUrl(referenceSource)),
   )
   .replace(
-    '"/ui/shared/components/formula_hover/formula_hover.js?v=20260907a"',
+    '"/ui/shared/components/formula_hover/formula_hover.js?v=20260908b"',
     JSON.stringify(formulaHoverStubUrl),
   )
   .replace(

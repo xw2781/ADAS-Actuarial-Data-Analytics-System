@@ -33,6 +33,10 @@ const summaryFormatterSource = summarySource
     "const installDfmDatasetAutocomplete = () => {};",
   )
   .replace(
+    /import \{ createFormulaBarExcelLinkButton \} from "[^"]*";/u,
+    "const createFormulaBarExcelLinkButton = () => ({ el: {}, update: () => false });",
+  )
+  .replace(
     `import {
   getCachedDfmDatasetReferenceValues,
   resolveDfmDatasetReferencesInFormulaDetailed,

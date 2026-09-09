@@ -132,10 +132,52 @@ lives here.
 /* A reference is written in the color of where its values come from, matching
    the outline the linked cells themselves wear in the grid. */
 .arFormulaBarDisplay .fmtExcelRef {
-  color: #217346;
+  color: var(--ar-spreadsheet-excel-link-border, #217346);
   font-weight: 600;
 }
 .arFormulaBarDisplay .fmtInternalRef {
   color: #2b6df6;
   font-weight: 600;
+}
+
+/* The way out to the workbook a formula reads from. It wears the same green as
+   the reference beside it, so the button and the text it acts on read as one
+   thing, and it keeps to the bar's own 20px row rather than the toolbar size. */
+.arFormulaBarExcelLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--tabbed-page-control-radius, 4px);
+  background: transparent;
+  color: var(--ar-spreadsheet-excel-link-border, #217346);
+  cursor: pointer;
+}
+.arFormulaBarExcelLink[hidden] {
+  display: none;
+}
+.arFormulaBarExcelLink::before {
+  content: "";
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask: url("../../icons/library/external-link.svg?v=20260908a") no-repeat center / contain;
+  mask: url("../../icons/library/external-link.svg?v=20260908a") no-repeat center / contain;
+}
+/* Mixed from the button's own green rather than written out again, so the
+   hover can never drift from the colour it is a wash of. */
+.arFormulaBarExcelLink:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.arFormulaBarExcelLink:focus-visible {
+  outline: 1px solid var(--ar-spreadsheet-excel-link-border, #217346);
+  outline-offset: 0;
+}
+.arFormulaBarExcelLink.is-busy {
+  opacity: 0.55;
+  cursor: default;
 }

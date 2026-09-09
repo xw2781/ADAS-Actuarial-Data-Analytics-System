@@ -40,10 +40,41 @@ const dragModuleUrl = asModule(replaceSharedImport(
   sharedModuleUrl("formula_bar_layout.js"),
   "formula_bar_drag.js",
 ));
+// The workbook button is inlined the same way. Its reference parser is the real
+// one, so the button appears exactly where the app would show it, while the
+// Excel bridge and the shared tooltip stand in: neither belongs to what this
+// test is about, and both reach past the fake document.
+const replaceImportPath = (text, path, replacement, origin) => {
+  const specifier = new RegExp(`"${path.replace(/[./]/gu, "\\$&")}(\\?v=[^"]*)?"`, "u");
+  if (!specifier.test(text)) throw new Error(`${path} import not found in ${origin}`);
+  return text.replace(specifier, JSON.stringify(replacement));
+};
+const excelLinkSource = await readFile(
+  new URL("../ui/shared/components/formula_bar/formula_bar_excel_link.js", import.meta.url),
+  "utf8",
+);
+const excelLinkModuleUrl = asModule([
+  [
+    "/ui/shared/integrations/excel_reference.js",
+    new URL("../ui/shared/integrations/excel_reference.js", import.meta.url).href,
+  ],
+  [
+    "/ui/shared/integrations/excel_api.js",
+    asModule("export const openExcelWorkbook = async () => ({ ok: true });"),
+  ],
+  [
+    "/ui/shared/components/tooltip/tooltip.js",
+    asModule("export const attachArcrhoTooltip = () => {};"),
+  ],
+].reduce(
+  (text, [path, replacement]) => replaceImportPath(text, path, replacement, "formula_bar_excel_link.js"),
+  excelLinkSource,
+));
 // Resolved to real modules so the test exercises the shared layout, tokenizer,
 // and drag controller rather than stand-ins.
 const patchedSource = [
   ["formula_bar_layout.js", sharedModuleUrl("formula_bar_layout.js")],
+  ["formula_bar_excel_link.js", excelLinkModuleUrl],
   ["formula_text.js", sharedModuleUrl("formula_text.js")],
   ["formula_bar_drag.js", dragModuleUrl],
 ].reduce(
@@ -683,4 +714,18 @@ test("closing the editor is reported once, whether or not it held focus", () => 
   assert.equal(context.closes.length, 1);
   assert.equal(context.dismisses.length, 0, "nothing had focus to give back");
   assert.deepEqual(context.closes[0], { ...LINK_CONTEXT, formula: LINK_CONTEXT.reference });
+});
+
+test("the bar offers a way into the workbook, and drops it for anything else", () => {
+  const context = setup();
+  openSizedBar(context);
+  const button = byClass(context.documentRef, "arFormulaBarExcelLink");
+  assert.ok(button, "the linked-cell bar carries the shared workbook button");
+  assert.equal(button.hidden, false);
+  // A link into another dataset is not a workbook link.
+  context.controller.open(context.anchor, { reference: "=[Paid Claims][1, 2]" }, {});
+  assert.equal(button.hidden, true);
+  // Neither is the notice a coarser view shows in place of a formula.
+  context.controller.open(context.anchor, { note: "Set the origin length back to 1 to view this link." }, {});
+  assert.equal(button.hidden, true);
 });

@@ -9,7 +9,7 @@ import {
   setDatasetGridEditConfig,
 } from "/ui/shared/tabs/data/dataset_grid_view.js?v=20260907c";
 import { parseExcelReference } from "/ui/shared/integrations/excel_reference.js?v=20260715a";
-import { createFormulaHoverEditor } from "/ui/shared/components/formula_hover/formula_hover.js?v=20260907a";
+import { createFormulaHoverEditor } from "/ui/shared/components/formula_hover/formula_hover.js?v=20260908b";
 import {
   buildInternalDatasetReferenceText,
   insertPickedDatasetReference,

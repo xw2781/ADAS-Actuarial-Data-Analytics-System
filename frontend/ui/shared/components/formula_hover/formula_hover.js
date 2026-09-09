@@ -18,11 +18,12 @@ import {
   invalidateFormulaBarWidthCache,
 } from "/ui/shared/components/formula_bar/formula_bar_layout.js?v=20260812a";
 import { createFormulaBarDragController } from "/ui/shared/components/formula_bar/formula_bar_drag.js?v=20260829b";
+import { createFormulaBarExcelLinkButton } from "/ui/shared/components/formula_bar/formula_bar_excel_link.js?v=20260908a";
 import { tokenizeFormula } from "/ui/shared/components/formula_bar/formula_text.js?v=20260908a";
 
 const FORMULA_HOVER_STYLE_ID = "arcrho-formula-hover-style";
 const FORMULA_HOVER_STYLESHEETS = [
-  "/ui/shared/components/formula_bar/formula_bar.css?v=20260907a",
+  "/ui/shared/components/formula_bar/formula_bar.css?v=20260908b",
   "/ui/shared/components/formula_hover/formula_hover.css?v=20260907a",
 ];
 const DEFAULT_HIDE_DELAY_MS = 140;
@@ -160,6 +161,7 @@ export function createFormulaHoverEditor(options = {}) {
   let root = null;
   let input = null;
   let display = null;
+  let excelLink = null;
   let errorMessage = null;
   let activeAnchor = null;
   let activePositionRect = null;
@@ -242,6 +244,8 @@ export function createFormulaHoverEditor(options = {}) {
     display = documentRef.createElement("div");
     display.className = "arFormulaBarDisplay";
 
+    excelLink = createFormulaBarExcelLinkButton({ documentRef, onStatus });
+
     errorMessage = documentRef.createElement("div");
     errorMessage.id = errorId;
     errorMessage.className = "arFormulaHoverError";
@@ -252,6 +256,7 @@ export function createFormulaHoverEditor(options = {}) {
     root.appendChild(formulaMark);
     root.appendChild(input);
     root.appendChild(display);
+    root.appendChild(excelLink.el);
     root.appendChild(errorMessage);
     documentRef.body.appendChild(root);
 
@@ -288,6 +293,7 @@ export function createFormulaHoverEditor(options = {}) {
     input.addEventListener("input", () => {
       clearError();
       onDraftChange(String(input.value || ""));
+      syncExcelLink();
       reposition();
     });
     input.addEventListener("keydown", (event) => {
@@ -312,9 +318,15 @@ export function createFormulaHoverEditor(options = {}) {
     return root;
   }
 
+  /** Point the workbook button at the formula the bar is carrying right now. */
+  function syncExcelLink() {
+    excelLink?.update(activeContext?.note ? "" : String(input?.value || ""));
+  }
+
   /** Swap between the rendered formula and the editable input, then re-measure. */
   function setEditing(editing) {
     if (!input || !display) return;
+    syncExcelLink();
     // A note is never typed into, so the bar stays on its rendered side and
     // shows the sentence as prose rather than as formula tokens.
     if (activeContext?.note) {
@@ -621,6 +633,7 @@ export function createFormulaHoverEditor(options = {}) {
     if (!isEditing() || commitPending) return false;
     input.value = String(text ?? "");
     clearError();
+    syncExcelLink();
     reposition();
     if (draftOptions.focus) {
       windowRef.requestAnimationFrame?.(() => {
@@ -648,6 +661,7 @@ export function createFormulaHoverEditor(options = {}) {
     root = null;
     input = null;
     display = null;
+    excelLink = null;
     errorMessage = null;
     activeAnchor = null;
     activePositionRect = null;

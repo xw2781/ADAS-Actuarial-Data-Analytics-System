@@ -1,0 +1,10 @@
+{
+  "type": "feature",
+  "scope": "dataset",
+  "audience": "user",
+  "summary": "The formula bar now has a button that opens the linked workbook in Excel and selects the range the formula reads from.",
+  "details": [
+    "The button appears in the Dataset Viewer's linked-cell editor and on the DFM Ratios formula bar, only while the formula points at a workbook.",
+    "Pressing it while typing a formula does not commit the edit."
+  ]
+}

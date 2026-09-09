@@ -9,6 +9,7 @@ import {
   getCachedDfmDatasetReferenceValues,
   resolveDfmDatasetReferencesInFormulaDetailed,
 } from "/ui/method_pages/dfm/dfm_dataset_formula.js?v=20260820a";
+import { createFormulaBarExcelLinkButton } from "/ui/shared/components/formula_bar/formula_bar_excel_link.js?v=20260908a";
 import {
   formatFormulaText,
   stripRoundWrappers,
@@ -189,12 +190,18 @@ function renderFormulaBarDisplay(displayEl, rawText, sourceText = rawText) {
   }
 }
 
+// The bar is a singleton on the page, so its workbook button is one too.
+let summaryExcelLink = null;
+
 /** Show/hide display overlay vs input based on focus state. */
 function updateFormulaBarDisplayMode(barEl, isEditing) {
   if (!barEl) return;
   const input = barEl.querySelector("#dfmSummaryFormulaBarInput");
   const display = barEl.querySelector("#dfmSummaryFormulaBarDisplay");
   if (!input || !display) return;
+  // The raw formula is what names the workbook, in both modes: the rendered
+  // display drops a ROUND wrapper the reference may sit inside.
+  summaryExcelLink?.update(input.value);
   if (isEditing) {
     input.style.display = "";
     display.style.display = "none";
@@ -496,6 +503,7 @@ function ensureSummaryFormulaBarEl(summaryTable) {
     const display = document.createElement("div");
     display.id = "dfmSummaryFormulaBarDisplay";
     display.className = "arFormulaBarDisplay dfmSummaryFormulaBarDisplay";
+    summaryExcelLink = createFormulaBarExcelLinkButton({ onStatus: setStatusBarText });
     const validationState = document.createElement("span");
     validationState.id = "dfmSummaryFormulaBarState";
     validationState.className = "dfmSummaryFormulaBarState";
@@ -505,6 +513,7 @@ function ensureSummaryFormulaBarEl(summaryTable) {
     el.appendChild(label);
     el.appendChild(input);
     el.appendChild(display);
+    el.appendChild(summaryExcelLink.el);
     el.appendChild(validationState);
   }
   if (el.dataset.wired !== "1") {
