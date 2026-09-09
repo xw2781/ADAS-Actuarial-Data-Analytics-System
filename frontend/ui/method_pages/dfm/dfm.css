@@ -903,6 +903,20 @@ body {
   white-space: normal;
   vertical-align: middle;
 }
+/* The row number ResQ lists before each average, "10: User Entry". It is a
+   counter over the rows in table order, so dropping a dragged row renumbers
+   every label at once; the drag ghost resets the counter to the row it left. */
+#ratioWrap table.ratioSummaryTable tbody {
+  counter-reset: dfm-summary-row;
+}
+#ratioWrap table.ratioSummaryTable tbody tr[data-row-id],
+.summaryDragGhostTable tr[data-row-id] {
+  counter-increment: dfm-summary-row;
+}
+#ratioWrap .dfmSummaryLabelText::before,
+.summaryDragGhostTable .dfmSummaryLabelText::before {
+  content: counter(dfm-summary-row) ": ";
+}
 #ratioWrap .dfmSummaryLabelText {
   display: -webkit-box;
   max-height: calc(2 * var(--ar-spreadsheet-cell-height));

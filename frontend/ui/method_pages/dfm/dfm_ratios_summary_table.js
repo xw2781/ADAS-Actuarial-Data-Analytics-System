@@ -8,7 +8,7 @@ import {
   registerSummaryFunctions,
   summaryRuntime,
 } from "/ui/method_pages/dfm/ratios_summary/summary_runtime.js?v=20260819a";
-import "/ui/method_pages/dfm/ratios_summary/summary_model.js?v=20260902a";
+import "/ui/method_pages/dfm/ratios_summary/summary_model.js?v=20260909a";
 import "/ui/method_pages/dfm/ratios_summary/summary_formula_bar.js?v=20260831a";
 import "/ui/method_pages/dfm/ratios_summary/summary_formula_bar_anchor.js?v=20260819a";
 import "/ui/method_pages/dfm/ratios_summary/summary_formula_bar_drag.js?v=20260819a";

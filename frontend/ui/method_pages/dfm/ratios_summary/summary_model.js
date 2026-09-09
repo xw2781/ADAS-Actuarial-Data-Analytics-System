@@ -308,6 +308,9 @@ export function wireSummaryRowDrag(summaryBody) {
       ghostTable.style.width = `${rect.width}px`;
       ghostTable.style.left = `${fixedLeft}px`;
       ghostTable.style.top = `${rect.top}px`;
+      // The ghost sits outside the table, so its row number is the one the
+      // dragged row had; the tbody's counter renumbers everything on drop.
+      ghostTable.style.counterReset = `dfm-summary-row ${dragStartIndex}`;
       const ghostBody = document.createElement("tbody");
       const ghostRow = dragRow.cloneNode(true);
       ghostRow.classList.add("summaryDragGhostRow");

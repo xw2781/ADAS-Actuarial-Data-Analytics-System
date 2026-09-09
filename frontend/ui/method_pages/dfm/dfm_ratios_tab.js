@@ -948,6 +948,8 @@ export function renderRatioTable() {
     const summaryLabel = rowCfg.label || "Custom";
     const labelText = document.createElement("span");
     labelText.className = "dfmSummaryLabelText";
+    // The stylesheet counts the row number in front of the label, so the
+    // header's text stays the bare label that formulas, notes and copies key on.
     labelText.textContent = summaryLabel;
     th.appendChild(labelText);
     th.title = summaryLabel;
@@ -1108,10 +1110,13 @@ export function renderRatioTable() {
     const sharedWidth = Number.parseFloat(
       cornerStyle.getPropertyValue("--ar-spreadsheet-cell-width"),
     ) || RATIO_COLUMN_DEFAULT_WIDTH;
+    // The row number drawn before each summary label ("13: ") takes room of
+    // its own, so the floor grows by the width of the widest one.
+    const rowNumberWidth = Math.ceil(labelMeasure.measureText(`${summaryRows.length}: `).width);
     naturalLabelWidth = Math.max(
       sharedWidth,
       Math.ceil(labelMeasure.measureText(corner.textContent || "").width + horizontalChrome + 1),
-    );
+    ) + rowNumberWidth;
   }
   const storedLabelWidth = getStoredRatioColumnWidth("label");
   const labelWidth = Math.max(naturalLabelWidth, storedLabelWidth ?? 0);

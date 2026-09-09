@@ -1,0 +1,11 @@
+{
+  "type": "improvement",
+  "scope": "dfm",
+  "audience": "user",
+  "summary": "The Ratios tab shows each average row's number before its label, such as 10: User Entry, the way ResQ lists them.",
+  "details": [
+    "The number is the row's current position and follows a drag reorder.",
+    "The label column starts a little wider to make room for the numbers.",
+    "Formula references, cell notes and copies keep using the bare label."
+  ]
+}
