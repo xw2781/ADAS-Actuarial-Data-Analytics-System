@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Explorer Icon Options</title>
+  <link rel="stylesheet" href="../../ui/shell/tab-type-icons/tab_type_icons.css?v=20260908b"/>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #eef2f6;
+      --panel: #ffffff;
+      --strip: #f4f7fa;
+      --text: #202327;
+      --muted: #667085;
+      --border: #d8dde3;
+      --accent: #2b6df6;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, "Segoe UI", "SegoeUI", Tahoma, sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 32px));
+      margin: 22px auto 60px;
+      display: grid;
+      gap: 14px;
+    }
+
+    h1 { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.2; }
+    p.lede { margin: 4px 0 0 0; color: var(--muted); max-width: 78ch; }
+
+    /* Sticky answer bar: the page's only job is to end with one name to say out loud. */
+    .pickBar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 14px;
+      box-shadow: 0 1px 0 rgba(16,24,40,0.04);
+    }
+    .pickBar .label { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .pickBar .value { font-size: 14px; font-weight: 700; }
+    .pickBar .value.empty { font-weight: 400; color: var(--muted); }
+    .pickBar .say { margin-left: auto; color: var(--muted); }
+    .pickBar code {
+      font-family: Consolas, "Courier New", monospace;
+      background: #f1f4f8;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 5px;
+      color: #1f2937;
+    }
+
+    .toolbar { display: flex; align-items: center; gap: 8px; }
+    .toolbar button {
+      height: 26px;
+      padding: 0 10px;
+      font: inherit;
+      font-size: 12px;
+      color: var(--text);
+      background: #f5f7fa;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .toolbar button:hover { background: #eceff4; }
+    .toolbar button[aria-pressed="true"] { background: #e4ecfd; border-color: #b6cbf8; color: #14306e; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
+      gap: 14px;
+    }
+
+    .option {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px 14px 14px;
+      cursor: pointer;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+    .option:hover { border-color: #b9c3cf; }
+    .option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .option.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+    .optionHead { display: flex; align-items: baseline; gap: 8px; }
+    .optionHead .name { font-weight: 700; font-size: 13px; }
+    .optionHead .id {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .optionHead .mark { margin-left: auto; font-size: 11px; color: var(--accent); font-weight: 700; visibility: hidden; }
+    .option.selected .mark { visibility: visible; }
+    .note { color: var(--muted); margin: 4px 0 10px; min-height: 34px; }
+
+    /* Tab strip at the shell's real metrics: 14px icon, 6px of air, 28px tab. */
+    .stripFrame { background: var(--strip); padding: 8px 8px 0; border: 1px solid var(--border); border-radius: 3px 3px 0 0; }
+    .strip { display: flex; align-items: flex-end; height: 28px; overflow: hidden; }
+    .canvasEdge { height: 10px; background: #ffffff; border: 1px solid #c8c8c8; border-top: none; border-radius: 0 0 3px 3px; }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      line-height: 1;
+      padding: 6px 9px;
+      height: 28px;
+      background: #f3f3f3;
+      border: 1px solid #d0d0d0;
+      font-size: 13px;
+      color: #333;
+      white-space: nowrap;
+    }
+    .tab.active { background: #ffffff; font-weight: 600; border-color: #c8c8c8; box-shadow: inset 0 2px 0 var(--accent); }
+    .tab .tabTypeIcon, .tab .candidate { width: 14px; height: 14px; margin-right: 6px; opacity: 0.7; }
+    .tab.active .tabTypeIcon, .tab.active .candidate { opacity: 1; }
+
+    .candidate { display: inline-block; flex: 0 0 auto; color: currentColor; }
+    .candidate svg { display: block; width: 100%; height: 100%; }
+
+    .sizes { display: flex; align-items: flex-end; gap: 16px; margin-top: 12px; }
+    .sizes .swatch { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); font-size: 10px; }
+    .sizes .swatch .candidate { color: var(--text); opacity: 1; margin: 0; }
+    .s14 { width: 14px; height: 14px; }
+    .s20 { width: 20px; height: 20px; }
+    .s34 { width: 34px; height: 34px; }
+
+    /* Dark check: the same artwork on the shell's dark chrome, no second drawing. */
+    body.dark { --bg: #171a1f; --panel: #1f2328; --strip: #23272d; --text: #e6e8ea; --muted: #98a1ad; --border: #343a42; }
+    body.dark .tab { background: #2a2f36; border-color: #3a4048; color: #c9ced6; }
+    body.dark .tab.active { background: #12151a; color: #ffffff; border-color: #3a4048; }
+    body.dark .canvasEdge { background: #12151a; border-color: #3a4048; }
+    body.dark .pickBar code { background: #262b32; border-color: #3a4048; color: #dfe3e8; }
+    body.dark .toolbar button { background: #262b32; color: #dfe3e8; border-color: #3a4048; }
+    body.dark .toolbar button[aria-pressed="true"] { background: #1d3054; border-color: #2f4d86; color: #cfe0ff; }
+
+    .sectionTitle {
+      margin: 8px 0 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    footer { color: var(--muted); }
+    footer code { font-family: Consolas, "Courier New", monospace; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Project Explorer Icon Options</h1>
+    <p class="lede">
+      Candidate glyphs for the Project Explorer tab, each shown at the size the tab bar actually draws
+      it and beside the neighbours it has to stay distinct from. Click one to select it, then tell me
+      its short name.
+    </p>
+  </header>
+
+  <div class="pickBar">
+    <span class="label">Selected</span>
+    <span class="value empty" id="pickValue">nothing yet</span>
+    <span class="say" id="pickSay">Click a card below.</span>
+  </div>
+
+  <div class="toolbar">
+    <button type="button" id="themeBtn" aria-pressed="false">Dark chrome</button>
+    <button type="button" id="clearBtn">Clear selection</button>
+  </div>
+
+  <h2 class="sectionTitle">Round two, tiles and blocks</h2>
+  <div class="grid" id="gridNew"></div>
+
+  <h2 class="sectionTitle">Round one, earlier options</h2>
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <p>
+      Every candidate follows the set's drawing rules: a 16 unit canvas, outline only at 1.25 stroke,
+      round caps and joins, one colour inherited from the tab. The winner replaces
+      <code>ui/shell/tab-type-icons/project_settings.svg</code> and its 24 unit twin in
+      <code>ui/shell/home_card_icons.js</code>.
+    </p>
+  </footer>
+</main>
+
+<script>
+  // One entry per candidate. `art` is the inside of the shared 16-unit canvas, so every option is
+  // drawn under the same stroke, caps, and joins and the comparison is about shape alone.
+  var OPTIONS = [
+    {
+      id: "node-branch",
+      name: "Project node and its contents",
+      note: "A project, then the things inside it hanging off a spine.",
+      art: '<rect x="2.3" y="2" width="6.1" height="3.4" rx="1"/>'
+         + '<path d="M4.2 5.4v6.4h2.3"/><path d="M4.2 8.6h2.3"/>'
+         + '<path d="M8.4 8.6h5.3"/><path d="M8.4 11.8h5.3"/>'
+    },
+    {
+      id: "tree-rows",
+      name: "Outline tree",
+      note: "A heading row with two indented rows under it. The plainest reading of a tree.",
+      art: '<path d="M2.9 3.3h10.2"/><path d="M4.2 4.8v7h2.1"/><path d="M4.2 8.05h2.1"/>'
+         + '<path d="M7.9 8.05h5.2"/><path d="M7.9 11.8h5.2"/>'
+    },
+    {
+      id: "tree-three",
+      name: "Outline tree, three items",
+      note: "The same idea carrying a third child. Denser, and closer to a real tree in the app.",
+      art: '<path d="M3.2 2.9h9.6"/><path d="M4.5 4.4v8.2h2"/><path d="M4.5 6.6h2"/><path d="M4.5 9.6h2"/>'
+         + '<path d="M8.3 6.6h4.5"/><path d="M8.3 9.6h4.5"/><path d="M8.3 12.6h4.5"/>'
+    },
+    {
+      id: "tree-dots",
+      name: "Node tree",
+      note: "A root node with two child nodes. Reads as structure rather than as a list.",
+      art: '<circle cx="3.9" cy="3.4" r="1.15" fill="currentColor" stroke="none"/>'
+         + '<path d="M3.9 4.9v6.5h6.3"/><path d="M3.9 8.15h6.3"/>'
+         + '<circle cx="11.4" cy="8.15" r="1.15" fill="currentColor" stroke="none"/>'
+         + '<circle cx="11.4" cy="11.4" r="1.15" fill="currentColor" stroke="none"/>'
+    },
+    {
+      id: "chevron-rows",
+      name: "Expandable list",
+      note: "A disclosure arrow with the rows it opens. Says browsing, not structure.",
+      art: '<path d="M2.6 3.6 4.4 5.4 2.6 7.2"/><path d="M6 5.4h6.9"/>'
+         + '<path d="M7.6 9.4h5.3"/><path d="M7.6 12.4h5.3"/>'
+    },
+    {
+      id: "folder-rows",
+      name: "Folder with contents",
+      note: "Closest to the Home card it replaced. Sits very near the workspace folder icon.",
+      art: '<path d="M1.9 12.55V4.35a0.65 0.65 0 0 1 0.65-0.65H6.1l1.4 1.65h5.95a0.65 0.65 0 0 1 0.65 0.65v6.55a0.65 0.65 0 0 1-0.65 0.65H2.55a0.65 0.65 0 0 1-0.65-0.65Z"/>'
+         + '<path d="M4.9 8.5h4.3"/><path d="M4.9 10.8h6.2"/>'
+    },
+    {
+      id: "sitemap",
+      name: "Hierarchy chart",
+      note: "A parent box over two children. Strong at large sizes, muddy at tab size.",
+      art: '<rect x="6.1" y="1.9" width="3.8" height="3.2" rx="0.9"/><path d="M8 5.1v1.6"/>'
+         + '<path d="M4.1 6.7h7.8"/><path d="M4.1 6.7v1.5"/><path d="M11.9 6.7v1.5"/>'
+         + '<rect x="2.2" y="8.2" width="3.8" height="3.2" rx="0.9"/>'
+         + '<rect x="10" y="8.2" width="3.8" height="3.2" rx="0.9"/>'
+    },
+    {
+      id: "card-stack",
+      name: "Stack of projects",
+      note: "Many projects, one behind the other. Can be mistaken for a copy or duplicate action.",
+      art: '<rect x="2.2" y="4.9" width="8.9" height="8.3" rx="1.4"/>'
+         + '<path d="M4.9 4.9V3.6a1.2 1.2 0 0 1 1.2-1.2h6.5a1.2 1.2 0 0 1 1.2 1.2v6.5a1.2 1.2 0 0 1-1.2 1.2h-1.3"/>'
+    },
+    {
+      id: "grid-cards",
+      name: "All projects",
+      note: "The one in the app now. A catalogue of four, and the calmest silhouette here.",
+      art: '<rect x="2.2" y="2.2" width="5" height="5" rx="1.2"/>'
+         + '<rect x="8.8" y="2.2" width="5" height="5" rx="1.2"/>'
+         + '<rect x="2.2" y="8.8" width="5" height="5" rx="1.2"/>'
+         + '<rect x="8.8" y="8.8" width="5" height="5" rx="1.2"/>'
+    },
+    {
+      id: "browser-tree",
+      name: "Browser window",
+      note: "A window with a tree in its left pane. Warning: nearly the project window icon.",
+      art: '<rect x="1.85" y="2.6" width="12.3" height="10.8" rx="1.6"/><path d="M1.85 5.6h12.3"/>'
+         + '<path d="M6 5.6v7.8"/><path d="M3.2 7.9h1.9"/><path d="M3.2 10.1h1.9"/>'
+    },
+    {
+      id: "project-search",
+      name: "Look inside a project",
+      note: "A project with a lens over it. Says search more loudly than it says browse.",
+      art: '<rect x="2.2" y="2.3" width="8.3" height="8.3" rx="1.3"/>'
+         + '<circle cx="10.3" cy="10.3" r="2.7"/><path d="m12.3 12.3 1.5 1.5"/>'
+    }
+  ];
+
+  // Round two. The first round answered "what is a project explorer" with line drawings; this one
+  // answers with mass, because a solid shape is what survives at 14px and what the eye catches from
+  // the corner. Every entry still obeys the set's canvas, stroke, and joins.
+  var NEW_OPTIONS = [
+    {
+      id: "grid-accent",
+      name: "Four tiles, one in focus",
+      note: "The tiles you chose, with the first one filled so the glyph has a point of entry.",
+      art: '<rect x="2.2" y="2.2" width="5" height="5" rx="1.2" fill="currentColor"/>'
+         + '<rect x="8.8" y="2.2" width="5" height="5" rx="1.2"/>'
+         + '<rect x="2.2" y="8.8" width="5" height="5" rx="1.2"/>'
+         + '<rect x="8.8" y="8.8" width="5" height="5" rx="1.2"/>'
+    },
+    {
+      id: "grid-bold",
+      name: "Four tiles, tighter",
+      note: "The same four grown into the canvas with a narrower gutter. More weight in the tab.",
+      art: '<rect x="1.9" y="1.9" width="5.6" height="5.6" rx="1.4"/>'
+         + '<rect x="8.5" y="1.9" width="5.6" height="5.6" rx="1.4"/>'
+         + '<rect x="1.9" y="8.5" width="5.6" height="5.6" rx="1.4"/>'
+         + '<rect x="8.5" y="8.5" width="5.6" height="5.6" rx="1.4"/>'
+    },
+    {
+      id: "grid-checker",
+      name: "Four tiles, two filled",
+      note: "Filled on the diagonal. Keeps its shape when an inactive tab dims the icon.",
+      art: '<rect x="2.2" y="2.2" width="5" height="5" rx="1.2" fill="currentColor"/>'
+         + '<rect x="8.8" y="2.2" width="5" height="5" rx="1.2"/>'
+         + '<rect x="2.2" y="8.8" width="5" height="5" rx="1.2"/>'
+         + '<rect x="8.8" y="8.8" width="5" height="5" rx="1.2" fill="currentColor"/>'
+    },
+    {
+      id: "grid-solid",
+      name: "Four solid tiles",
+      note: "No outline at all. The strongest of the family, and the least like the rest of the set.",
+      art: '<rect x="2.4" y="2.4" width="5" height="5" rx="1.3" fill="currentColor" stroke="none"/>'
+         + '<rect x="8.6" y="2.4" width="5" height="5" rx="1.3" fill="currentColor" stroke="none"/>'
+         + '<rect x="2.4" y="8.6" width="5" height="5" rx="1.3" fill="currentColor" stroke="none"/>'
+         + '<rect x="8.6" y="8.6" width="5" height="5" rx="1.3" fill="currentColor" stroke="none"/>'
+    },
+    {
+      id: "grid-round",
+      name: "Four discs",
+      note: "The same arrangement in circles. Softer, and nothing else in the set is round.",
+      art: '<circle cx="5" cy="5" r="2.6"/><circle cx="11" cy="5" r="2.6"/>'
+         + '<circle cx="5" cy="11" r="2.6"/><circle cx="11" cy="11" r="2.6"/>'
+    },
+    {
+      id: "dot-grid",
+      name: "Nine projects",
+      note: "A filled three by three field. Strong at 34px, and close to grey mush at tab size.",
+      art: '<circle cx="3.7" cy="3.7" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="8" cy="3.7" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="12.3" cy="3.7" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="3.7" cy="8" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="8" cy="8" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="12.3" cy="8" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="3.7" cy="12.3" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="8" cy="12.3" r="1.05" fill="currentColor" stroke="none"/>'
+         + '<circle cx="12.3" cy="12.3" r="1.05" fill="currentColor" stroke="none"/>'
+    },
+    {
+      id: "tile-detail",
+      name: "List and detail",
+      note: "A tall panel with two tiles beside it. The shape of the page this tab opens.",
+      art: '<rect x="1.9" y="2.3" width="5.4" height="11.4" rx="1.4"/>'
+         + '<rect x="8.7" y="2.3" width="5.4" height="4.9" rx="1.4"/>'
+         + '<rect x="8.7" y="8.8" width="5.4" height="4.9" rx="1.4"/>'
+    },
+    {
+      id: "tri-blocks",
+      name: "Header and two tiles",
+      note: "One wide block over two squares. Balanced, and unlike anything else in the tab bar.",
+      art: '<rect x="1.9" y="2.2" width="12.2" height="4.4" rx="1.3"/>'
+         + '<rect x="1.9" y="8.4" width="5.5" height="5.4" rx="1.3"/>'
+         + '<rect x="8.6" y="8.4" width="5.5" height="5.4" rx="1.3"/>'
+    },
+    {
+      id: "header-rows",
+      name: "Project over its contents",
+      note: "A solid header with two rows beneath. Says project first, contents second.",
+      art: '<rect x="1.9" y="2.2" width="12.2" height="3.6" rx="1.2" fill="currentColor"/>'
+         + '<rect x="1.9" y="7.3" width="12.2" height="2.7" rx="1.1"/>'
+         + '<rect x="1.9" y="11.1" width="12.2" height="2.7" rx="1.1"/>'
+    },
+    {
+      id: "framed-grid",
+      name: "Tiles in a frame",
+      note: "The catalogue closed inside a window. The inner tiles nearly close up at tab size.",
+      art: '<rect x="1.8" y="1.8" width="12.4" height="12.4" rx="2"/>'
+         + '<rect x="4.1" y="4.1" width="3.3" height="3.3" rx="0.8"/>'
+         + '<rect x="8.6" y="4.1" width="3.3" height="3.3" rx="0.8"/>'
+         + '<rect x="4.1" y="8.6" width="3.3" height="3.3" rx="0.8"/>'
+         + '<rect x="8.6" y="8.6" width="3.3" height="3.3" rx="0.8"/>'
+    },
+    {
+      id: "drawers",
+      name: "Cabinet",
+      note: "Two drawers with handles. A register of projects rather than a picture of one.",
+      art: '<rect x="2.2" y="2.4" width="11.6" height="11.2" rx="1.6"/><path d="M2.2 8h11.6"/>'
+         + '<circle cx="8" cy="5.2" r="0.85" fill="currentColor" stroke="none"/>'
+         + '<circle cx="8" cy="10.8" r="0.85" fill="currentColor" stroke="none"/>'
+    }
+  ];
+
+  // Neighbours the glyph has to stay apart from: the workspace folder, the project window, and the
+  // workflow boxes are the three it can be confused with.
+  var NEIGHBOURS = [
+    { type: "home", label: "Home" },
+    { type: "file_explorer", label: "Workspace" },
+    { type: "project_instance", label: "NJ_Annual" },
+    { type: "workflow", label: "Quarter Close" }
+  ];
+
+  var SIZES = [
+    { cls: "s14", label: "14px" },
+    { cls: "s20", label: "20px" },
+    { cls: "s34", label: "34px" }
+  ];
+
+  function svgMarkup(art, extraClass) {
+    return '<span class="candidate ' + extraClass + '">'
+      + '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25"'
+      + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
+      + art + '</svg></span>';
+  }
+
+  function stripMarkup(option) {
+    var html = '<div class="stripFrame"><div class="strip">';
+    html += '<div class="tab"><span class="tabTypeIcon" data-tab-type="home" aria-hidden="true"></span>Home</div>';
+    html += '<div class="tab active">' + svgMarkup(option.art, '') + 'Project Explorer</div>';
+    for (var i = 1; i < NEIGHBOURS.length; i++) {
+      html += '<div class="tab"><span class="tabTypeIcon" data-tab-type="' + NEIGHBOURS[i].type
+        + '" aria-hidden="true"></span>' + NEIGHBOURS[i].label + '</div>';
+    }
+    html += '</div></div><div class="canvasEdge"></div>';
+    return html;
+  }
+
+  function sizesMarkup(option) {
+    var html = '<div class="sizes">';
+    for (var i = 0; i < SIZES.length; i++) {
+      html += '<div class="swatch">' + svgMarkup(option.art, SIZES[i].cls)
+        + '<span>' + SIZES[i].label + '</span></div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  var grid = document.getElementById("grid");
+  var pickValue = document.getElementById("pickValue");
+  var pickSay = document.getElementById("pickSay");
+  var selected = null;
+
+  function select(card, option) {
+    if (selected) selected.classList.remove("selected");
+    selected = card;
+    card.classList.add("selected");
+    pickValue.textContent = option.name;
+    pickValue.classList.remove("empty");
+    pickSay.innerHTML = 'Tell me: <code>use ' + option.id + '</code>';
+  }
+
+  function renderOptions(container, list) {
+    list.forEach(function (option) {
+    var card = document.createElement("div");
+    card.className = "option";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.innerHTML =
+      '<div class="optionHead"><span class="name">' + option.name + '</span>'
+      + '<span class="id">' + option.id + '</span>'
+      + '<span class="mark">Selected</span></div>'
+      + '<div class="note">' + option.note + '</div>'
+      + stripMarkup(option)
+      + sizesMarkup(option);
+    card.addEventListener("click", function () { select(card, option); });
+    card.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        select(card, option);
+      }
+    });
+    container.appendChild(card);
+    });
+  }
+
+  renderOptions(document.getElementById("gridNew"), NEW_OPTIONS);
+  renderOptions(grid, OPTIONS);
+
+  var themeBtn = document.getElementById("themeBtn");
+  themeBtn.addEventListener("click", function () {
+    var dark = document.body.classList.toggle("dark");
+    themeBtn.setAttribute("aria-pressed", dark ? "true" : "false");
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", function () {
+    if (selected) selected.classList.remove("selected");
+    selected = null;
+    pickValue.textContent = "nothing yet";
+    pickValue.classList.add("empty");
+    pickSay.textContent = "Click a card below.";
+  });
+</script>
+</body>
+</html>

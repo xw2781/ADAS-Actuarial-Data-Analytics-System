@@ -1,0 +1,25 @@
+.candidateIcon {
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask: url("../../../ui/shell/tab-type-icons/project_settings.svg?v=20260908e") center / contain no-repeat;
+  mask: url("../../../ui/shell/tab-type-icons/project_settings.svg?v=20260908e") center / contain no-repeat;
+}
+.candidateIcon[data-icon="collection"] {
+  -webkit-mask-image: url("../../../ui/shell/tab-type-icons/project_settings.svg?v=20260908e");
+  mask-image: url("../../../ui/shell/tab-type-icons/project_settings.svg?v=20260908e");
+}
+.candidateIcon[data-icon="hierarchy"] {
+  -webkit-mask-image: url("hierarchy.svg?v=20260908a");
+  mask-image: url("hierarchy.svg?v=20260908a");
+}
+.candidateIcon[data-icon="catalogue"] {
+  -webkit-mask-image: url("catalogue.svg?v=20260908a");
+  mask-image: url("catalogue.svg?v=20260908a");
+}
+.candidateIcon[data-icon="open-directory"] {
+  -webkit-mask-image: url("open-directory.svg?v=20260908a");
+  mask-image: url("open-directory.svg?v=20260908a");
+}
