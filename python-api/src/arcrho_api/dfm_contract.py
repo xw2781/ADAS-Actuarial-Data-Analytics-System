@@ -1523,7 +1523,7 @@ def _calculate_formula_values(
     mask = data["input_data_triangle_mask"]
     excluded = ratio["excluded"]
     decimal_places = payload["details_tab"]["decimal_places"]
-    old_values = _fit_matrix(_number_matrix(formulas.get("values")), len(labels), len(ratio["development_labels"]), None)
+    old_values = _fit_matrix(_input_number_matrix(formulas.get("values")), len(labels), len(ratio["development_labels"]), None)
     inputs = _fit_matrix(_text_matrix(formulas.get("inputs")), len(labels), len(ratio["development_labels"]), "")
     col_count = len(ratio["development_labels"])
     tail_col = len(data["development_labels"]) - 1
@@ -1636,17 +1636,17 @@ def _calculate_formula_values(
 def selected_ratio_values(payload: Mapping[str, Any]) -> list[float]:
     """Return the selected development ratio per column at full precision.
 
-    ``average formulas.values`` is stored through :func:`canonical_number`, which
-    rounds to six decimals so a DFM file stays reviewable. That is the right
-    precision to *display* a ratio and the wrong precision to *chain* one: a
-    consumer that multiplies ten stored ratios together, as the Bootstrap method
-    does when it back-fits a triangle, amplifies the rounding into a visible
-    error. Re-deriving the computed averages from the stored triangle costs one
-    pass and keeps a chained result exact.
+    ``average formulas.values`` is stored at the precision each ratio was
+    observed with. Re-deriving the computed averages from the stored triangle
+    still costs one pass, and it keeps a chained result exact even for a file
+    written before the stored values carried every digit: a consumer that
+    multiplies ten stored ratios together, as the Bootstrap method does when it
+    back-fits a triangle, would otherwise amplify that older rounding into a
+    visible error.
 
     A ratio the user owns -- User Entry, or a benchmark row -- is returned as
-    stored, because there the six-decimal value *is* the authoritative input
-    rather than a rounded projection of one.
+    stored, because there the stored value *is* the authoritative input rather
+    than a rounded projection of one.
     """
 
     method = normalize_dfm_method(payload, require_complete=False)
