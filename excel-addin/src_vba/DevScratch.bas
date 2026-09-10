@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_Test"
+Attribute VB_Name = "DevScratch"
 Public Sub GetReferencingCellsEx(ByVal target As Range)
     Dim ws As Worksheet
     Dim fcell As Range          ' cell containing formula

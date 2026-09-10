@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_MouseWheel"
+Attribute VB_Name = "ListBoxMouseWheel"
 Option Private Module
 Option Explicit
 

@@ -1,4 +1,4 @@
-Attribute VB_Name = "mod_PendingWatcher"
+Attribute VB_Name = "PendingWatcher"
 Public NextCheckTime As Date
 
 Private Sub ScheduleNextCheck()

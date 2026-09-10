@@ -1,4 +1,4 @@
-Attribute VB_Name = "Ribbon_Control"
+Attribute VB_Name = "RibbonCallbacks"
 
 '+----------+
 '|  Group 1 |
@@ -74,7 +74,7 @@ End Sub
 ' Check Updates
 Sub uiCheckUpdates(control As IRibbonControl)
     ' CheckUpdates
-    ufBuildTri.Show
+    ufBuildTriangle.Show
 End Sub
 
 ' User Settings
