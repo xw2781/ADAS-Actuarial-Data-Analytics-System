@@ -314,6 +314,55 @@ class ResqDfmV2Tests(unittest.TestCase):
         row = method["ratios_tab"]["average_formulas"]["label"].index("Benchmark")
         self.assertEqual(method["ratios_tab"]["average_formulas"]["values"][row], [1.8, 1.7, 1.0])
 
+    def test_an_average_arcrho_cannot_recompute_is_copied_as_a_user_entry_row(self) -> None:
+        """A median, a pattern or the row a roll forward leaves behind.
+
+        ResQ keeps such a row as hard-coded factors under a name of its own,
+        such as "Aug 2024". ArcRho has no rule that reproduces it, so it comes
+        across holding ResQ's numbers instead of a simple average of the whole
+        triangle, which is what guessing from the name used to produce.
+        """
+
+        copied = {"average_type": "user_entry", "base": "simple", "periods": "all", "exclude": 0}
+        for average_type in (
+            migration_dfm.RESQ_AVERAGE_TYPE_MEDIAN,
+            migration_dfm.RESQ_AVERAGE_TYPE_GEO_MEAN,
+            migration_dfm.RESQ_AVERAGE_TYPE_MIN,
+            migration_dfm.RESQ_AVERAGE_TYPE_MAX,
+            migration_dfm.RESQ_AVERAGE_TYPE_PRIOR_ANALYSIS,
+            migration_dfm.RESQ_AVERAGE_TYPE_PATTERN,
+        ):
+            with self.subTest(average_type=average_type):
+                self.assertEqual(
+                    migration_dfm._average_row_settings(average_type, "Aug 2024"), copied
+                )
+        # A custom row whose name no longer says which average it is.
+        self.assertIsNone(migration_dfm._infer_avg_settings("Aug 2024"))
+        self.assertEqual(
+            migration_dfm._average_row_settings(migration_dfm.RESQ_AVERAGE_TYPE_CUSTOM, "Aug 2024"),
+            copied,
+        )
+
+    def test_an_average_arcrho_computes_keeps_its_own_definition(self) -> None:
+        self.assertEqual(
+            migration_dfm._average_row_settings(
+                migration_dfm.RESQ_AVERAGE_TYPE_CUSTOM, "Volume - 8 Ex hi/lo"
+            ),
+            {"average_type": "custom", "base": "volume", "periods": 8, "exclude": 1},
+        )
+        self.assertEqual(
+            migration_dfm._average_row_settings(
+                migration_dfm.RESQ_AVERAGE_TYPE_BENCHMARK, "2025 industry"
+            )["base"],
+            "benchmark",
+        )
+        self.assertEqual(
+            migration_dfm._average_row_settings(
+                migration_dfm.RESQ_AVERAGE_TYPE_USER_ENTRY, "User Entry 2"
+            )["average_type"],
+            "user_entry",
+        )
+
     def test_resq_user_calculation_formula_translates_to_arcrho_references(self) -> None:
         labels = ["Volume - all", "Simple - 5", "Simple - 3", "Benchmark", "User Entry"]
         translate = migration_dfm._translate_resq_average_formula

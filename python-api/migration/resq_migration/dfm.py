@@ -360,11 +360,18 @@ def _resq_average_formula_names(dfm, strict: bool, max_probe: int) -> list[str]:
     return names
 
 
-# ResQ's AverageType enumeration, in the order the automation help lists it:
-# atCustom, atMedian, atGeoMean, atMin, atMax, atUserEntry, atCalculated,
-# atPriorAnalysis, atPattern, atBenchmark. Only the two ArcRho reads are named.
+# ResQ's AverageType enumeration, in the order the automation help lists it
+# (xCustomtAverage_AverageType.htm).
+RESQ_AVERAGE_TYPE_CUSTOM = 0
+RESQ_AVERAGE_TYPE_MEDIAN = 1
+RESQ_AVERAGE_TYPE_GEO_MEAN = 2
+RESQ_AVERAGE_TYPE_MIN = 3
+RESQ_AVERAGE_TYPE_MAX = 4
 RESQ_AVERAGE_TYPE_USER_ENTRY = 5
 RESQ_AVERAGE_TYPE_CALCULATED = 6
+RESQ_AVERAGE_TYPE_PRIOR_ANALYSIS = 7
+RESQ_AVERAGE_TYPE_PATTERN = 8
+RESQ_AVERAGE_TYPE_BENCHMARK = 9
 
 # "User Calculation" in the ResQ dialog. The formula may hold scalars, the four
 # arithmetic operators and Average(<row>) references to other average rows; the
@@ -537,11 +544,24 @@ def _translate_resq_average_formula(
     return f"={translated}"
 
 
-def _infer_avg_settings(label: str) -> dict:
+def _copied_value_settings() -> dict:
+    """A row ArcRho keeps exactly as ResQ left it, as an editable User Entry row."""
+
+    return {"average_type": "user_entry", "base": "simple", "periods": "all", "exclude": 0}
+
+
+def _infer_avg_settings(label: str) -> dict | None:
+    """The average ArcRho would compute for a row ResQ names *label*.
+
+    ``None`` when the name is not one of the averages ArcRho knows how to
+    reproduce. Guessing there used to mean a plain simple average over every
+    period, which quietly replaced the row's real numbers with different ones.
+    """
+
     norm = " ".join(label.split()).strip()
     lower = norm.lower()
     if lower.startswith("user"):
-        return {"average_type": "user_entry", "base": "simple", "periods": "all", "exclude": 0}
+        return _copied_value_settings()
     if "benchmark" in lower:
         return {"average_type": "custom", "base": "benchmark", "periods": "all", "exclude": 0}
     m = re.match(
@@ -556,7 +576,34 @@ def _infer_avg_settings(label: str) -> dict:
         if m.group(3) and ex == 0:
             ex = 1
         return {"average_type": "custom", "base": base, "periods": periods, "exclude": ex}
-    return {"average_type": "custom", "base": "simple", "periods": "all", "exclude": 0}
+    return None
+
+
+def _average_row_settings(average_type: int | None, label: str) -> dict:
+    """How ArcRho holds one ResQ average row.
+
+    ResQ offers averages ArcRho has no rule for -- a median, a geometric mean,
+    a minimum or maximum, a pattern, and the prior-analysis row a roll forward
+    leaves behind holding last quarter's hard-coded factors under a name such
+    as "Aug 2024". None of those can be recomputed here, so the row comes
+    across as a User Entry row carrying the numbers ResQ holds. It stays
+    editable and stops pretending to follow the triangle.
+
+    A row ResQ does compute the ArcRho way keeps its own definition, so it
+    still moves with the data: a volume or simple average, a benchmark, and
+    ResQ's own User Entry row.
+    """
+
+    if average_type == RESQ_AVERAGE_TYPE_BENCHMARK:
+        return {"average_type": "custom", "base": "benchmark", "periods": "all", "exclude": 0}
+    if average_type == RESQ_AVERAGE_TYPE_USER_ENTRY:
+        return _copied_value_settings()
+    if average_type in (None, RESQ_AVERAGE_TYPE_CUSTOM):
+        # A custom row is a volume or simple average and says which one in its
+        # name; a renamed one no longer does, and its values are copied rather
+        # than guessed at.
+        return _infer_avg_settings(label) or _copied_value_settings()
+    return _copied_value_settings()
 
 def _recreate_adjustment_formulas(
     notes: str,
@@ -927,12 +974,12 @@ def export_dfm(
     for row, label in enumerate(formula_labels):
         if row in calculated_formulas:
             s = (
-                {"average_type": "user_entry", "base": "simple", "periods": "all", "exclude": 0}
+                _copied_value_settings()
                 if calculated_formulas[row]
                 else {"average_type": "custom", "base": "benchmark", "periods": "all", "exclude": 0}
             )
         else:
-            s = _infer_avg_settings(label)
+            s = _average_row_settings(definitions[row]["average_type"], label)
         avg_settings["average_type"].append(s["average_type"])
         avg_settings["base"].append(s["base"])
         avg_settings["periods"].append(s["periods"])
