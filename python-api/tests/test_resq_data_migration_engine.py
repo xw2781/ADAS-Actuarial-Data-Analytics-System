@@ -95,6 +95,8 @@ class ResqDataMigrationEngineTests(unittest.TestCase):
                 ["", True, "Paid Loss", False, "Triangle", "Loss", "PaidLoss"],
                 ["", True, "Generated Premium", False, "Vector", "Premium", "Prem"],
                 ["\"Paid Loss\" * 1.1", False, "Loaded Loss", True, "Triangle", "Loss", ""],
+                # Copied from ResQ with a formula over a type ArcRho never imported.
+                ["\"Current Qtr Indicated\" * \"Loaded Loss\"", False, "Orphaned Loss", True, "Triangle", "Loss", ""],
             ],
         }), encoding="utf-8")
 
@@ -144,6 +146,9 @@ class ResqDataMigrationEngineTests(unittest.TestCase):
             ),
             "input",
         )
+        # A calculated type whose formula names a type ArcRho does not have
+        # can never be rebuilt, so its instances are hand-entered inputs.
+        self.assertEqual(self.module._triangle_source_kind("Orphaned Loss", "Orphaned Loss"), "input")
 
     # -- two-decimal comparison -----------------------------------------------
 
@@ -175,6 +180,7 @@ class ResqDataMigrationEngineTests(unittest.TestCase):
         self.assertTrue(self.module._is_unreviewed_dataset("Loaded Loss", "Loaded Loss"))
         self.assertFalse(self.module._is_unreviewed_dataset("Paid Loss AY2020", "Paid Loss"))
         self.assertFalse(self.module._is_unreviewed_dataset("Incurred Loss", "Incurred Loss"))
+        self.assertFalse(self.module._is_unreviewed_dataset("Orphaned Loss", "Orphaned Loss"))
 
     def test_ticked_names_keep_every_unreviewed_dataset(self) -> None:
         """The review never offers calculated or generated datasets, so ticking cannot drop them."""

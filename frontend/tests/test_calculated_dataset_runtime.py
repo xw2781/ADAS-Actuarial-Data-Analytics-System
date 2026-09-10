@@ -53,9 +53,16 @@ class CalculatedDatasetRuntimeTests(unittest.TestCase):
             "calculated": True,
             "generated": False,
         }
+        # The type exists in the library; only its instance file is missing.
+        input_row = {
+            "name": "Generated Input",
+            "data_format": "Triangle",
+            "formula": "",
+            "calculated": False,
+            "generated": True,
+        }
         with (
-            patch.object(calculated_dataset_service, "_calculated_rows_by_key", return_value={"calculated output": row}),
-            patch.object(calculated_dataset_service, "_dataset_type_rows", return_value=[row]),
+            patch.object(calculated_dataset_service, "_dataset_type_rows", return_value=[input_row, row]),
             patch.object(calculated_dataset_service, "_existing_target_settings", return_value={}),
             patch.object(
                 calculated_dataset_service,

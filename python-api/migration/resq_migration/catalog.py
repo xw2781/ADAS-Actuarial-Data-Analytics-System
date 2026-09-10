@@ -21,6 +21,7 @@ from arcrho_api.dataset_index_contract import (
     write_index_json_unlocked,
 )
 from arcrho_api.dataset_link_contract import link_precedent_names
+from arcrho_api.dataset_type_contract import dataset_type_keys, is_app_calculated_dataset_type
 
 from .core import (
     BS_CRA_FILE_PREFIX,
@@ -183,14 +184,17 @@ def _is_generated_dataset_type(dataset_type_name: object, rows: list[dict] | Non
 def _is_calculated_dataset_type(dataset_type_name: object, rows: list[dict] | None = None) -> bool:
     """True when ArcRho's own dataset-types library computes this type from a formula.
 
-    This is the one rule for "calculated" on the ArcRho side, the same one the
-    app server's sidecar writer applies. ResQ's own ``Calculated`` flag or
-    ``Formula`` on a dataset is never consulted: when the two libraries
-    disagree, ArcRho's wins, so a type ResQ derives (a prior-quarter lookup,
-    say) that ArcRho lists as a plain input imports as an editable input.
+    The rule is ``arcrho_api.dataset_type_contract``, the same one the app
+    server applies. ResQ's own ``Calculated`` flag or ``Formula`` on a dataset
+    is never consulted: when the two libraries disagree, ArcRho's wins, so a
+    type ResQ derives (a prior-quarter lookup, say) that ArcRho lists as a
+    plain input imports as an editable input. A type ArcRho flags calculated
+    whose formula names a type ArcRho does not have imports the same way: its
+    values are copied and kept as hand-entered input.
     """
+    rows = _dataset_type_rows() if rows is None else rows
     row = _dataset_type_row(dataset_type_name, rows)
-    return bool(row and row.get("calculated") and not row.get("generated") and _clean_name(row.get("formula")))
+    return bool(row) and is_app_calculated_dataset_type(row, dataset_type_keys(rows))
 
 def _is_engine_generated_instance(payload: dict) -> bool:
     """True for a generated single-instance dataset that the data-engine should build.
@@ -239,30 +243,30 @@ def _unknown_dataset_type_skip_detail(kind: str, name: object, dataset_type_name
 
 def _direct_precedent_names(rows: list[dict], dataset_type_name: str) -> list[str]:
     known_names = [row["name"] for row in rows]
+    known_keys = dataset_type_keys(rows)
     target_key = _canon_dataset_name(dataset_type_name)
     for row in rows:
         if _canon_dataset_name(row.get("name")) != target_key:
             continue
-        formula = _clean_name(row.get("formula"))
-        if not row.get("calculated") or row.get("generated") or not formula:
+        if not is_app_calculated_dataset_type(row, known_keys):
             return []
-        return _formula_components(formula, known_names)
+        return _formula_components(_clean_name(row.get("formula")), known_names)
     return []
 
 def _direct_dependent_names(rows: list[dict], dataset_type_name: str) -> list[str]:
     known_names = [row["name"] for row in rows]
+    known_keys = dataset_type_keys(rows)
     target_key = _canon_dataset_name(dataset_type_name)
     out: list[str] = []
     seen: set[str] = set()
     if not target_key:
         return out
     for row in rows:
-        formula = _clean_name(row.get("formula"))
-        if not row.get("calculated") or row.get("generated") or not formula:
+        if not is_app_calculated_dataset_type(row, known_keys):
             continue
         component_keys = {
             _canon_dataset_name(name)
-            for name in _formula_components(formula, known_names)
+            for name in _formula_components(_clean_name(row.get("formula")), known_names)
         }
         if target_key not in component_keys:
             continue

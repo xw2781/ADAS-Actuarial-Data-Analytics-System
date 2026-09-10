@@ -15,6 +15,7 @@ import pandas as pd
 
 from arcrho_api.dataset_display_contract import normalize_show_subtotal
 from arcrho_api.dataset_link_contract import link_precedent_names
+from arcrho_api.dataset_type_contract import dataset_type_keys, is_app_calculated_dataset_type
 from arcrho_api.sidecar_core_contract import stored_length_fields, stored_lengths
 from arcrho_api.timestamps import utc_now_text
 from app_server import config
@@ -141,16 +142,23 @@ def _formula_components(formula: str, known_names: List[str]) -> List[str]:
     return out
 
 
+def _app_calculated_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The rows ArcRho computes itself, by the one rule in ``arcrho_api.dataset_type_contract``."""
+    known_keys = dataset_type_keys(rows)
+    return [row for row in rows if is_app_calculated_dataset_type(row, known_keys)]
+
+
 def _calculated_dataset_contract_from_rows(
     rows: List[Dict[str, Any]],
     dataset_type_name: str,
 ) -> Dict[str, Any] | None:
     known_names = [row["name"] for row in rows]
+    known_keys = dataset_type_keys(rows)
     target_key = _canon_dataset_name(dataset_type_name)
     for row in rows:
         if _canon_dataset_name(row["name"]) != target_key:
             continue
-        if not row.get("calculated") or row.get("generated") or not _clean_text(row.get("formula")):
+        if not is_app_calculated_dataset_type(row, known_keys):
             return None
         precedents = _formula_components(row["formula"], known_names)
         rows_by_key = {
@@ -205,9 +213,7 @@ def _direct_dependent_names(project_name: str, dataset_type_name: str) -> List[s
     seen: Set[str] = set()
     if not target_key:
         return out
-    for row in rows:
-        if not row.get("calculated") or row.get("generated") or not _clean_text(row.get("formula")):
-            continue
+    for row in _app_calculated_rows(rows):
         components = _formula_components(row["formula"], known_names)
         component_keys = {_canon_dataset_name(component) for component in components}
         if target_key not in component_keys:
@@ -1313,8 +1319,7 @@ def _latest_diagonal_or_vector_values(arr: np.ndarray, data_format: str) -> List
 def _calculated_rows_by_key(project_name: str) -> Dict[str, Dict[str, Any]]:
     return {
         _canon_dataset_name(row["name"]): row
-        for row in _dataset_type_rows(project_name)
-        if row.get("calculated") and not row.get("generated") and _clean_text(row.get("formula"))
+        for row in _app_calculated_rows(_dataset_type_rows(project_name))
     }
 
 
@@ -1322,9 +1327,7 @@ def _dependency_map(project_name: str, rows: List[Dict[str, Any]] | None = None)
     rows = rows if rows is not None else _dataset_type_rows(project_name)
     known_names = [row["name"] for row in rows]
     out: Dict[str, Set[str]] = {}
-    for row in rows:
-        if not row.get("calculated") or row.get("generated") or not _clean_text(row.get("formula")):
-            continue
+    for row in _app_calculated_rows(rows):
         target_key = _canon_dataset_name(row["name"])
         for component in _formula_components(row["formula"], known_names):
             comp_key = _canon_dataset_name(component)
@@ -1337,9 +1340,7 @@ def _target_dependency_map(project_name: str, rows: List[Dict[str, Any]] | None 
     rows = rows if rows is not None else _dataset_type_rows(project_name)
     known_names = [row["name"] for row in rows]
     out: Dict[str, Set[str]] = {}
-    for row in rows:
-        if not row.get("calculated") or row.get("generated") or not _clean_text(row.get("formula")):
-            continue
+    for row in _app_calculated_rows(rows):
         target_key = _canon_dataset_name(row["name"])
         deps = {
             _canon_dataset_name(component)
@@ -1480,16 +1481,11 @@ def _recalculate_dataset_impl(
     dataset_type_rows: List[Dict[str, Any]] | None = None,
     mark_dependents_review: bool = True,
 ) -> Dict[str, Any]:
-    if dataset_type_rows is None:
-        rows_by_key = _calculated_rows_by_key(project_name)
-        all_rows = _dataset_type_rows(project_name)
-    else:
-        all_rows = dataset_type_rows
-        rows_by_key = {
-            _canon_dataset_name(item.get("name")): item
-            for item in all_rows
-            if item.get("calculated") and not item.get("generated") and _clean_text(item.get("formula"))
-        }
+    all_rows = _dataset_type_rows(project_name) if dataset_type_rows is None else dataset_type_rows
+    rows_by_key = {
+        _canon_dataset_name(item.get("name")): item
+        for item in _app_calculated_rows(all_rows)
+    }
     row = rows_by_key.get(_canon_dataset_name(dataset_type_name))
     if not row:
         return {"ok": False, "dataset_type_name": dataset_type_name, "skipped": True, "reason": "not_calculated"}

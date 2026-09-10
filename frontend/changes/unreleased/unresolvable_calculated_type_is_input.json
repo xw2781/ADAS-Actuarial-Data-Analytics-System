@@ -1,0 +1,10 @@
+{
+  "type": "fix",
+  "scope": "dataset",
+  "audience": "user",
+  "summary": "A calculated dataset type whose formula names a type the project does not have is now treated as a manual input everywhere, so the ResQ import keeps its values as hard-coded numbers you can edit.",
+  "details": [
+    "Its datasets no longer carry a formula or precedents, are not read-only, are not refreshed by the dependent walk, and appear in the ResQ transfer review like any other input.",
+    "One shared rule now decides which dataset types ArcRho calculates itself, for the app, the ResQ import, and the transfer review alike."
+  ]
+}

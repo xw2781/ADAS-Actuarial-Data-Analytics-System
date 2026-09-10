@@ -65,6 +65,8 @@ class ResqDataMigrationGraphTests(unittest.TestCase):
                 ["\"Paid Loss\" + \"DFM Ultimate\"", False, "Net Ultimate", True, "Vector", "Loss", ""],
                 ["\"Net Ultimate\" * 1.1", False, "Loaded Ultimate", True, "Vector", "Loss", ""],
                 ["", False, "Prior Qtr Indicated", False, "Vector", "Loss", ""],
+                # Copied from ResQ with a formula over a type ArcRho never imported.
+                ["\"Current Qtr Indicated\" * \"Net Ultimate\"", False, "Claim Count x Severity", True, "Vector", "Loss", ""],
             ],
         }), encoding="utf-8")
 
@@ -267,6 +269,29 @@ class ResqDataMigrationGraphTests(unittest.TestCase):
         self.assertEqual(payload["source_kind"], "calculated")
         self.assertTrue(payload["calculated"])
         self.assertEqual([entry["dataset_name"] for entry in payload["precedents"]], ["Net Ultimate"])
+
+    def test_vector_whose_type_formula_names_a_missing_type_imports_as_hardcoded_input(self) -> None:
+        # ArcRho's library flags "Claim Count x Severity" calculated, but its
+        # formula names "Current Qtr Indicated", a ResQ type ArcRho does not
+        # have, so nothing could ever rebuild it: the copied values are kept
+        # as a hand-entered input with no formula and no precedents, and
+        # "Net Ultimate" does not count it as a dependent.
+        self.extractors.write_vector_export(
+            self._vector_payload("Claim Count x Severity", formula='"Current Qtr Indicated" * "Net Ultimate"'),
+            r"Auto\PP",
+            self.rc_dir,
+        )
+
+        payload = json.loads((self.sidecars_dir / "Claim Count x Severity.json").read_text(encoding="utf-8"))
+        self.assertEqual(payload["source_kind"], "input")
+        self.assertFalse(payload["calculated"])
+        self.assertNotIn("formula", payload)
+        self.assertNotIn("formula_links", payload)
+        self.assertEqual(payload["precedents"], [])
+        self.assertEqual(
+            self.catalog._direct_dependent_names(self.catalog._dataset_type_rows(), "Net Ultimate"),
+            ["Loaded Ultimate"],
+        )
 
     def _instance_formula_payload(self, name: str, formula: str) -> dict:
         return {

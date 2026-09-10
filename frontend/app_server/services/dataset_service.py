@@ -18,6 +18,7 @@ import pandas as pd
 from fastapi import HTTPException
 
 from arcrho_api.dataset_display_contract import DEFAULT_SHOW_SUBTOTAL, normalize_show_subtotal
+from arcrho_api.dataset_type_contract import dataset_type_keys, is_app_calculated_dataset_type
 from arcrho_api.dataset_link_contract import link_precedent_names
 from arcrho_api.io import persisted_json_text
 from arcrho_api.sidecar_audit_contract import (
@@ -1640,16 +1641,19 @@ def _dataset_type_calculation_map(project_name: str) -> Dict[str, tuple[bool, st
         rows = calculated_dataset_service._dataset_type_rows(project_name)
     except Exception:
         return {}
+    known_keys = dataset_type_keys(rows)
     out: Dict[str, tuple[bool, str]] = {}
     for row in rows:
         name_key = str(row.get("name") or "").strip().lower()
         if not name_key:
             continue
-        formula = str(row.get("formula") or "").strip()
-        out[name_key] = (
-            bool(row.get("calculated") and not row.get("generated") and formula),
-            formula,
-        )
+        app_calculated = is_app_calculated_dataset_type(row, known_keys)
+        # A calculated type whose formula names a type the library lacks is a
+        # plain input (``arcrho_api.dataset_type_contract``), so no chip shows
+        # the formula ArcRho cannot evaluate; a generated type keeps the
+        # Engine's formula for display.
+        formula = str(row.get("formula") or "").strip() if app_calculated or row.get("generated") else ""
+        out[name_key] = (app_calculated, formula)
     return out
 
 
