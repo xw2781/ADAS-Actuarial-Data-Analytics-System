@@ -1,0 +1,306 @@
+/* Dependency Graph page.
+
+   This fills the body of a Project Instance nested window (pi-window), so it
+   owns no frame chrome of its own: the titlebar, dragging, resizing, minimize,
+   maximize, and close all belong to the host frame in
+   project_instance_windows.js. Every colour reads a shared --ar-color-* token,
+   so the Dark and High Contrast themes need no companion rule.
+
+   The diagram is one SVG: edges are paths, nodes are foreignObject boxes so
+   their text ellipsizes and their colours come from this sheet rather than
+   from attributes written at render time. */
+
+.pi-dependency-graph-page {
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  color: var(--ar-color-text);
+  font: 12px Arial, "Segoe UI", "SegoeUI", Tahoma, sans-serif;
+  background: var(--ar-color-canvas-subtle);
+}
+
+.pi-dependency-graph-body {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+/* One compact command row: a search box, the interaction cue, the family
+   legend, and the four icon buttons the diagram is steered with. */
+.pi-dependency-graph-toolbar {
+  min-height: 28px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.pi-dependency-graph-search {
+  width: 220px;
+  height: 28px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  border: 1px solid var(--ar-color-border-strong);
+  border-radius: 4px;
+  background: var(--ar-color-input);
+  color: var(--ar-color-text);
+  padding: 0 8px;
+  font: inherit;
+}
+
+.pi-dependency-graph-search:focus {
+  outline: none;
+  border-color: var(--ar-color-border-focus);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.16);
+}
+
+.pi-dependency-graph-cue {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ar-color-text-muted);
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pi-dependency-graph-legend {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--ar-color-text-muted);
+}
+
+.pi-dependency-graph-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.pi-dependency-graph-legend span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--dg-family-accent);
+}
+
+.pi-dependency-graph-icon-btn {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ar-color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.pi-dependency-graph-icon-btn:hover {
+  border-color: var(--ar-color-border-strong);
+  background: var(--ar-color-surface);
+  color: var(--ar-color-text-strong);
+}
+
+.pi-dependency-graph-icon-btn:disabled { opacity: 0.55; cursor: default; }
+
+/* The library glyphs are applied as masks over the button colour, so one file
+   serves every state and theme. The base rule carries a generic glyph so an
+   unmapped button degrades to a mark rather than a solid block. */
+.pi-dependency-graph-icon-btn::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  -webkit-mask: url("../shared/icons/library/more-horizontal.svg?v=20260908a") no-repeat center / contain;
+  mask: url("../shared/icons/library/more-horizontal.svg?v=20260908a") no-repeat center / contain;
+}
+
+.pi-dependency-graph-icon-btn[data-icon="zoom-out"]::before {
+  -webkit-mask-image: url("../shared/icons/library/minus.svg?v=20260908a");
+  mask-image: url("../shared/icons/library/minus.svg?v=20260908a");
+}
+
+.pi-dependency-graph-icon-btn[data-icon="zoom-in"]::before {
+  -webkit-mask-image: url("../shared/icons/library/plus.svg?v=20260908a");
+  mask-image: url("../shared/icons/library/plus.svg?v=20260908a");
+}
+
+.pi-dependency-graph-icon-btn[data-icon="fit"]::before {
+  -webkit-mask-image: url("../shared/icons/library/expand.svg?v=20260908a");
+  mask-image: url("../shared/icons/library/expand.svg?v=20260908a");
+}
+
+.pi-dependency-graph-icon-btn[data-icon="refresh"]::before {
+  -webkit-mask-image: url("../shared/icons/library/refresh.svg?v=20260908a");
+  mask-image: url("../shared/icons/library/refresh.svg?v=20260908a");
+}
+
+/* The canvas takes whatever height the resized frame leaves; the diagram pans
+   and zooms inside it rather than scrolling the page. */
+.pi-dependency-graph-canvas {
+  flex: 1 1 auto;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ar-color-border);
+  background: var(--ar-color-surface);
+}
+
+.pi-dependency-graph-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pi-dependency-graph-svg.is-panning { cursor: grabbing; }
+
+.pi-dependency-graph-state[hidden] { display: none; }
+
+.pi-dependency-graph-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  text-align: center;
+  color: var(--ar-color-text-muted);
+  background: var(--ar-color-surface);
+}
+
+.pi-dependency-graph-status {
+  min-height: 16px;
+  flex: 0 0 auto;
+  color: var(--ar-color-text-muted);
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pi-dependency-graph-status.error { color: var(--ar-color-danger); }
+
+/* ---- Edges ------------------------------------------------------------- */
+
+.dg-edge {
+  fill: none;
+  stroke: var(--ar-color-border-strong);
+  stroke-width: 1.4;
+  marker-end: url(#dgArrow);
+  transition: opacity 140ms ease, stroke 140ms ease;
+}
+
+/* A back edge closes a cycle the layering had to leave out. */
+.dg-edge.is-back { stroke-dasharray: 4 3; }
+
+.dg-edge.is-upstream { stroke: var(--ar-color-accent); marker-end: url(#dgArrowUpstream); }
+.dg-edge.is-downstream { stroke: var(--ar-color-success); marker-end: url(#dgArrowDownstream); }
+.dg-edge.is-dim { opacity: 0.22; }
+
+.dg-arrow { fill: var(--ar-color-border-strong); }
+.dg-arrow-upstream { fill: var(--ar-color-accent); }
+.dg-arrow-downstream { fill: var(--ar-color-success); }
+
+/* ---- Nodes ------------------------------------------------------------- */
+
+.dg-node {
+  --dg-node-accent: var(--dg-family-dataset);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 10px 0 11px;
+  border: 1px solid var(--ar-color-border-strong);
+  border-left: 3px solid var(--dg-node-accent);
+  border-radius: 4px;
+  background: var(--ar-color-surface-raised);
+  color: var(--ar-color-text);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.dg-node:hover, .dg-node:focus-visible {
+  outline: none;
+  border-color: var(--ar-color-border-focus);
+  border-left-color: var(--dg-node-accent);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.dg-node.is-focus {
+  border-color: var(--ar-color-accent);
+  border-left-color: var(--dg-node-accent);
+  box-shadow: 0 0 0 2px rgba(43, 109, 246, 0.18);
+}
+
+.dg-node.is-match { border-color: var(--ar-color-accent); border-left-color: var(--dg-node-accent); }
+.dg-node.is-dim { opacity: 0.28; }
+
+.dg-node-name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 15px;
+  color: var(--ar-color-text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dg-node-kind {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--ar-color-text-muted);
+}
+
+.dg-node-kind-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dg-node-review {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ar-color-warning);
+}
+
+/* One accent per family, shared by the node stripe and the legend swatch. */
+.pi-dependency-graph-page {
+  --dg-family-dataset: #94a3b8;
+  --dg-family-calculated: #0f766e;
+  --dg-family-engine: #475569;
+  --dg-family-method: var(--ar-color-accent);
+  --dg-family-missing: var(--ar-color-danger);
+}
+
+.dg-node[data-family="calculated"], .pi-dependency-graph-legend [data-family="calculated"] { --dg-node-accent: var(--dg-family-calculated); --dg-family-accent: var(--dg-family-calculated); }
+.dg-node[data-family="engine"], .pi-dependency-graph-legend [data-family="engine"] { --dg-node-accent: var(--dg-family-engine); --dg-family-accent: var(--dg-family-engine); }
+.dg-node[data-family="method"], .pi-dependency-graph-legend [data-family="method"] { --dg-node-accent: var(--dg-family-method); --dg-family-accent: var(--dg-family-method); }
+.dg-node[data-family="dataset"], .pi-dependency-graph-legend [data-family="dataset"] { --dg-node-accent: var(--dg-family-dataset); --dg-family-accent: var(--dg-family-dataset); }
+.dg-node[data-family="missing"] { --dg-node-accent: var(--dg-family-missing); border-style: dashed; border-left-style: solid; cursor: default; }

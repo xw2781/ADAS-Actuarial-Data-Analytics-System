@@ -121,10 +121,11 @@ function getProjectInstanceWindowSnapshot(frame) {
   if (!frame?.isConnected) return null;
   if (toText(frame.dataset?.temporaryViewSessionId)) return null;
   // Review-table windows belong to a live macro session, and the Excel Link
-  // Manager is a tool window rather than an object; neither is persisted into
-  // or restored from the saved Project Instance state.
+  // Manager and the Dependency Graph are tool windows rather than objects;
+  // none is persisted into or restored from the saved Project Instance state.
   if (frame.dataset?.windowKind === "review_table") return null;
   if (frame.dataset?.windowKind === "excel_links") return null;
+  if (frame.dataset?.windowKind === "dependency_graph") return null;
   const kind = isDfmWindow(frame)
     ? "dfm"
     : isResultSelectionWindow(frame)

@@ -1,0 +1,229 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const stubUrl = (source) => `data:text/javascript;base64,${Buffer.from(source).toString("base64")}`;
+const tooltipStubUrl = stubUrl("export function attachArcrhoTooltip() {}");
+
+const layoutUrl = new URL("../ui/project_instance/dependency_graph_layout.js", import.meta.url).href;
+const {
+  buildDependencyGraph,
+  dependencyGraphReach,
+  dependencyNodeKind,
+  layoutDependencyGraph,
+} = await import(layoutUrl);
+
+// The page module reads the DOM and starts a load as soon as it is imported;
+// only its exported pure helpers are exercised here.
+const rawWindowSource = (await readFile(
+  new URL("../ui/project_instance/dependency_graph_window.js", import.meta.url),
+  "utf8",
+)).replaceAll("\r\n", "\n");
+const windowModule = await import(stubUrl(
+  rawWindowSource
+    .replace(/"\/ui\/shared\/components\/tooltip\/tooltip\.js\?v=\d{8}[a-z]"/, JSON.stringify(tooltipStubUrl))
+    .replace(/"\/ui\/project_instance\/dependency_graph_layout\.js\?v=\d{8}[a-z]"/, JSON.stringify(layoutUrl))
+    .replace(/^import "\/ui\/shared\/integrations\/zoom_bridge\.js[^"]*";$/m, "")
+    .replace(/^const params = new URLSearchParams[\s\S]*$/m, ""),
+));
+const { dependencyGraphOpenRequest, dependencyGraphSummary, dependencyGraphNodeTooltip } = windowModule;
+
+const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+
+const PAYLOAD = {
+  ok: true,
+  nodes: [
+    { name: "Paid", dataset_type: "Paid", source_kind: "input", method_type: "None", status: 0 },
+    { name: "Incurred", dataset_type: "Incurred", source_kind: "input", method_type: "None", status: 0 },
+    { name: "Paid Vector", dataset_type: "Paid Vector", source_kind: "calculated", method_type: "None", formula: "Paid / 2", status: 0 },
+    { name: "Paid DFM", dataset_type: "Paid Ultimate", source_kind: "dfm", method_type: "DFM", method_name: "Paid DFM Method", status: 2 },
+    { name: "Incurred DFM", dataset_type: "Incurred Ultimate", source_kind: "dfm", method_type: "DFM", status: 0 },
+    { name: "Selected Ultimate", dataset_type: "Selected Ultimate", source_kind: "result_selection", method_type: "Result Selection", status: 0 },
+    { name: "Gone Vector", dataset_type: "Gone Vector", source_kind: "", method_type: "None", status: 0, in_index: false },
+  ],
+  edges: [
+    { source: "Paid", target: "Paid Vector" },
+    { source: "Paid Vector", target: "Paid DFM" },
+    { source: "Incurred", target: "Incurred DFM" },
+    { source: "Paid DFM", target: "Selected Ultimate" },
+    { source: "Incurred DFM", target: "Selected Ultimate" },
+    { source: "Gone Vector", target: "Incurred DFM" },
+    { source: "paid", target: "PAID VECTOR" },
+    { source: "Paid", target: "Nobody" },
+    { source: "Paid", target: "Paid" },
+  ],
+};
+
+test("the graph keeps one node per name and one edge per pair, dropping unknown and self edges", () => {
+  const graph = buildDependencyGraph(PAYLOAD);
+  assert.equal(graph.nodes.length, 7);
+  assert.equal(graph.edges.length, 6);
+  assert.deepEqual(graph.byKey.get("paid dfm").precedents, ["paid vector"]);
+  assert.deepEqual(graph.byKey.get("paid dfm").dependents, ["selected ultimate"]);
+  assert.equal(graph.byKey.get("paid dfm").methodName, "Paid DFM Method");
+  assert.equal(graph.byKey.get("paid").methodType, "");
+});
+
+test("node families come from the method type, then the source kind, and a missing node is its own family", () => {
+  assert.deepEqual(dependencyNodeKind({ source_kind: "input", method_type: "None" }), { family: "dataset", label: "Dataset" });
+  assert.deepEqual(dependencyNodeKind({ source_kind: "calculated" }), { family: "calculated", label: "Calculated" });
+  assert.deepEqual(dependencyNodeKind({ source_kind: "engine" }), { family: "engine", label: "Engine" });
+  assert.deepEqual(dependencyNodeKind({ source_kind: "dfm", method_type: "DFM" }), { family: "method", label: "DFM" });
+  assert.deepEqual(dependencyNodeKind({ source_kind: "input", in_index: false }), { family: "missing", label: "Not In Index" });
+});
+
+test("layers follow the longest chain of inputs and every edge runs left to right", () => {
+  const graph = buildDependencyGraph(PAYLOAD);
+  const layout = layoutDependencyGraph(graph);
+  const layer = Object.fromEntries(layout.nodes.map((node) => [node.name, node.layer]));
+  assert.equal(layer.Paid, 0);
+  assert.equal(layer.Incurred, 0);
+  assert.equal(layer["Gone Vector"], 0);
+  assert.equal(layer["Paid Vector"], 1);
+  assert.equal(layer["Incurred DFM"], 1);
+  assert.equal(layer["Paid DFM"], 2);
+  assert.equal(layer["Selected Ultimate"], 3);
+  const at = Object.fromEntries(layout.nodes.map((node) => [node.name, node]));
+  for (const edge of layout.edges) {
+    const source = layout.nodes.find((node) => node.key === edge.source);
+    const target = layout.nodes.find((node) => node.key === edge.target);
+    assert.ok(source.x + source.width < target.x, `${source.name} -> ${target.name}`);
+    assert.equal(edge.back, false);
+    assert.match(edge.path, /^M[\d.]+ [\d.]+C/);
+  }
+  // Rows inside a layer sit next to their neighbours: Paid Vector reads Paid,
+  // Incurred DFM reads Incurred, so their relative order matches.
+  assert.equal(at.Paid.row < at.Incurred.row, at["Paid Vector"].row < at["Incurred DFM"].row);
+  assert.ok(layout.width > 0 && layout.height > 0);
+  // Every node fits inside the reported extent.
+  for (const node of layout.nodes) {
+    assert.ok(node.x >= 0 && node.x + node.width <= layout.width);
+    assert.ok(node.y >= 0 && node.y + node.height <= layout.height);
+  }
+});
+
+test("a cycle is drawn rather than hanging the layout: its closing edge is marked back", () => {
+  const graph = buildDependencyGraph({
+    nodes: [{ name: "A" }, { name: "B" }, { name: "C" }],
+    edges: [
+      { source: "A", target: "B" },
+      { source: "B", target: "C" },
+      { source: "C", target: "A" },
+    ],
+  });
+  const layout = layoutDependencyGraph(graph);
+  const layer = Object.fromEntries(layout.nodes.map((node) => [node.name, node.layer]));
+  assert.deepEqual(layer, { A: 0, B: 1, C: 2 });
+  assert.deepEqual(
+    layout.edges.map((edge) => [edge.source, edge.target, edge.back]),
+    [["a", "b", false], ["b", "c", false], ["c", "a", true]],
+  );
+});
+
+test("an empty class lays out to nothing", () => {
+  const layout = layoutDependencyGraph(buildDependencyGraph({ nodes: [], edges: [] }));
+  assert.deepEqual(layout, { nodes: [], edges: [], width: 0, height: 0 });
+});
+
+test("reach walks precedents and dependents transitively without the node itself", () => {
+  const graph = buildDependencyGraph(PAYLOAD);
+  const reach = dependencyGraphReach(graph, "paid dfm");
+  assert.deepEqual([...reach.upstream].sort(), ["paid", "paid vector"]);
+  assert.deepEqual([...reach.downstream].sort(), ["selected ultimate"]);
+  const top = dependencyGraphReach(graph, "selected ultimate");
+  assert.deepEqual([...top.upstream].sort(), ["gone vector", "incurred", "incurred dfm", "paid", "paid dfm", "paid vector"]);
+  assert.equal(top.downstream.size, 0);
+});
+
+test("a click opens a method output as its method and a dataset as a dataset, never a missing name", () => {
+  const graph = buildDependencyGraph(PAYLOAD);
+  const identity = { projectName: "Demo", reservingClass: "COL" };
+  assert.deepEqual(dependencyGraphOpenRequest(graph.byKey.get("paid dfm"), identity), {
+    datasetName: "Paid DFM",
+    datasetTypeName: "Paid Ultimate",
+    projectName: "Demo",
+    reservingClass: "COL",
+    openMethod: true,
+    methodType: "DFM",
+    methodName: "Paid DFM Method",
+  });
+  assert.deepEqual(dependencyGraphOpenRequest(graph.byKey.get("paid vector"), identity), {
+    datasetName: "Paid Vector",
+    datasetTypeName: "Paid Vector",
+    projectName: "Demo",
+    reservingClass: "COL",
+    openMethod: false,
+  });
+  assert.equal(dependencyGraphOpenRequest(graph.byKey.get("gone vector"), identity), null);
+});
+
+test("the status line and the hover text read the graph in plain words", () => {
+  assert.equal(dependencyGraphSummary({ nodeCount: 7, edgeCount: 6, reviewCount: 1 }), "7 objects, 6 links. 1 needs review.");
+  assert.equal(dependencyGraphSummary({ nodeCount: 1, edgeCount: 0, reviewCount: 0 }), "1 object, 0 links.");
+  assert.equal(dependencyGraphSummary({ nodeCount: 0 }), "");
+  const graph = buildDependencyGraph(PAYLOAD);
+  assert.equal(
+    dependencyGraphNodeTooltip(graph.byKey.get("paid dfm"), graph),
+    "Paid DFM · Dataset Type: Paid Ultimate · DFM · Needs review · Precedents: Paid Vector · Dependents: Selected Ultimate",
+  );
+  assert.equal(
+    dependencyGraphNodeTooltip(graph.byKey.get("paid vector"), graph),
+    "Paid Vector · Calculated · Formula: Paid / 2 · Precedents: Paid · Dependents: Paid DFM",
+  );
+});
+
+test("the Project Instance page wires the toolbar icon, the window kind, and the redraw hook", async () => {
+  const html = await read("../ui/project_instance/project_instance.html");
+  const button = html.match(/<button class="dataset-toolbar-btn" id="dependencyGraphBtn"[\s\S]*?<\/button>/)?.[0];
+  assert.ok(button, "the dataset toolbar carries the dependency graph button");
+  assert.match(button, /<use href="\/ui\/project_instance\/dependency-graph\.svg\?v=\d{8}[a-z]#dependency-graph"><\/use>/);
+  // Between the Excel links button and the refresh button, like the manual says.
+  assert.ok(html.indexOf('id="excelLinksBtn"') < html.indexOf('id="dependencyGraphBtn"'));
+  assert.ok(html.indexOf('id="dependencyGraphBtn"') < html.indexOf('id="datasetRefreshBtn"'));
+
+  const icon = await read("../ui/project_instance/dependency-graph.svg");
+  assert.match(icon, /<symbol id="dependency-graph" viewBox="0 0 24 24">/);
+  assert.doesNotMatch(icon, /#[0-9a-f]{3,6}/i, "the icon takes its colour from the host");
+
+  const context = await read("../ui/project_instance/project_instance_context.js");
+  assert.match(context, /dependencyGraphBtn: document\.getElementById\("dependencyGraphBtn"\)/);
+
+  const boot = await read("../ui/project_instance/project_instance_boot.js");
+  assert.match(boot, /import \{ installProjectInstanceDependencyGraph \} from "\.\/project_instance_dependency_graph\.js\?v=\d{8}[a-z]";/);
+  assert.match(boot, /installProjectInstanceDependencyGraph\(ctx\);/);
+  assert.match(boot, /api\.initDependencyGraph\(\);/);
+
+  const host = await read("../ui/project_instance/project_instance_dependency_graph.js");
+  assert.match(host, /kind: DEPENDENCY_GRAPH_WINDOW_KIND,/);
+  assert.match(host, /export const DEPENDENCY_GRAPH_WINDOW_KIND = "dependency_graph";/);
+  assert.match(host, /iframeSrc: buildDependencyGraphWindowUrl\(inst, path\),/);
+  assert.match(host, /\/ui\/project_instance\/dependency_graph_window\.html\?/);
+
+  // A tool window: never part of the persisted Project Instance state.
+  const windows = await read("../ui/project_instance/project_instance_windows.js");
+  assert.match(windows, /if \(frame\.dataset\?\.windowKind === "dependency_graph"\) return null;/);
+
+  // Every disk-backed table reload tells the open graph windows to redraw.
+  const cache = await read("../ui/project_instance/project_instance_dataset_cache.js");
+  assert.match(cache, /api\.notifyDependencyGraphWindows\?\.\(normalizedPath\);/);
+  assert.match(rawWindowSource, /event\.data\?\.type === "arcrho:dependency-graph-refresh"/);
+  assert.match(rawWindowSource, /"arcrho:project-instance-open-dependent-dataset"/);
+});
+
+test("the graph page and its read are registered end to end", async () => {
+  const pageHtml = await read("../ui/project_instance/dependency_graph_window.html");
+  assert.match(pageHtml, /dependency_graph_window\.css\?v=\d{8}[a-z]/);
+  assert.match(pageHtml, /dependency_graph_window\.js\?v=\d{8}[a-z]/);
+  for (const id of ["dependencyGraphSearch", "dependencyGraphZoomOut", "dependencyGraphZoomIn", "dependencyGraphFit", "dependencyGraphRefresh", "dependencyGraphSvg", "dependencyGraphState", "dependencyGraphStatus"]) {
+    assert.ok(pageHtml.includes(`id="${id}"`), id);
+  }
+  assert.match(rawWindowSource, /const GRAPH_ENDPOINT = "\/datasets\/dependency-graph";/);
+  // The drag handle captures the pointer (arcrho-ui-design L16).
+  assert.match(rawWindowSource, /svg\.setPointerCapture\(event\.pointerId\);/);
+
+  const router = await read("../app_server/api/dataset_router.py");
+  assert.match(router, /@router\.get\("\/datasets\/dependency-graph"\)/);
+  assert.match(router, /"dataset_dependency_graph",/);
+  const contract = await read("../../python-api/src/arcrho_workspace_read_contract.py");
+  assert.match(contract, /"dataset_dependency_graph": WorkspaceReadKind\(\n\s+"dataset_dependency_graph_service",\n\s+"build_reserving_class_dependency_graph",\n\s+\("project_name", "reserving_class"\),/);
+});

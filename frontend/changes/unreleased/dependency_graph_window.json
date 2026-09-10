@@ -1,0 +1,11 @@
+{
+  "type": "feature",
+  "scope": "project instance",
+  "audience": "user",
+  "summary": "Added a Dependency Graph window that draws every dataset and method of the selected reserving class and how they feed each other.",
+  "details": [
+    "Open it from the new graph icon in the dataset toolbar; it is a nested window like Manage Excel Links, pinned to the reserving class it was opened on.",
+    "Hover a box to light up what it is computed from and what depends on it; click a box to open the dataset in Dataset Viewer or a method output in its method page.",
+    "The diagram redraws on its own after a save, delete, or import changes the class."
+  ]
+}

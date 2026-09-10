@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Three linked nodes on a 17-unit ink box centred in the 24-unit canvas, the
+       same box as the other dataset-toolbar glyphs. The host stylesheet owns the
+       line width; only the colour is fixed here. -->
+  <symbol id="dependency-graph" viewBox="0 0 24 24">
+    <circle cx="12" cy="5.9" r="2.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="5.9" cy="18.1" r="2.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="18.1" cy="18.1" r="2.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M12 8.3v3.7M5.9 12h12.2M5.9 12v3.7M18.1 12v3.7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>

@@ -18,6 +18,7 @@ from app_server.schemas.dataset import (
 )
 from app_server.services import dataset_service, engine_hosted_save_service
 from app_server.services import calculated_dataset_service
+from app_server.services import dataset_dependency_graph_service
 from app_server.services import dataset_internal_link_service
 from app_server.services import dataset_number_format_service
 from app_server.services import workspace_mutation_client
@@ -56,6 +57,19 @@ def list_cached_dataset_names(project_name: str, reserving_class: str, refresh: 
         {"project_name": project_name, "reserving_class": reserving_class, "refresh": bool(refresh)},
         local=lambda: dataset_service.list_cached_dataset_names(
             project_name, reserving_class, refresh=refresh
+        ),
+    )
+
+
+@router.get("/datasets/dependency-graph")
+def get_dataset_dependency_graph(project_name: str, reserving_class: str) -> Dict[str, Any]:
+    # One index read plus every sidecar of the class: hosted, so a Client PC
+    # pays one round trip for the whole diagram instead of one per object.
+    return workspace_read_client.run_workspace_read(
+        "dataset_dependency_graph",
+        {"project_name": project_name, "reserving_class": reserving_class},
+        local=lambda: dataset_dependency_graph_service.build_reserving_class_dependency_graph(
+            project_name, reserving_class
         ),
     )
 

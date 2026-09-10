@@ -142,6 +142,13 @@ WORKSPACE_READ_KINDS: dict[str, WorkspaceReadKind] = {
         "list_reserving_class_excel_links",
         ("project_name", "reserving_class"),
     ),
+    # The Dependency Graph window's whole diagram: the class index for its
+    # nodes plus every sidecar for its edges, assembled where the files are.
+    "dataset_dependency_graph": WorkspaceReadKind(
+        "dataset_dependency_graph_service",
+        "build_reserving_class_dependency_graph",
+        ("project_name", "reserving_class"),
+    ),
     "table_summary": WorkspaceReadKind(
         "table_summary_service",
         "get_table_summary",

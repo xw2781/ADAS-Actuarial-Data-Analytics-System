@@ -87,6 +87,7 @@ export function createProjectInstanceContext(deps = {}) {
     // The Excel Link Manager itself lives in its own nested-window page; the
     // Project Instance page owns only the toolbar button that opens it.
     excelLinksBtn: document.getElementById("excelLinksBtn"),
+    dependencyGraphBtn: document.getElementById("dependencyGraphBtn"),
     datasetTempViewBtn: document.getElementById("datasetTempViewBtn"),
     datasetTempViewTooltipTitle: document.getElementById("datasetTempViewTooltipTitle"),
     datasetTempViewTooltipDescription: document.getElementById("datasetTempViewTooltipDescription"),

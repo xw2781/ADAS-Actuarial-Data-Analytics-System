@@ -504,6 +504,8 @@ function applyCachedDatasetSnapshot(payload, path = state.selectedPath) {
     ? toText(payload?.index_warning) || "Dataset table loaded, but index.json could not be updated."
     : "";
   void startDatasetIndexWatchForSnapshot(payload, normalizedPath);
+  // The disk-backed inventory moved on, so any open graph of this class redraws.
+  api.notifyDependencyGraphWindows?.(normalizedPath);
 }
 
 async function loadCachedDatasetFilterForSelectedPath(options = {}) {

@@ -137,6 +137,23 @@ class RouteWiringTests(unittest.TestCase):
         self.assertEqual(capture.calls[0][1]["refresh"], True)
         self._assert_registered(capture)
 
+    def test_dataset_dependency_graph_route(self) -> None:
+        capture = _CaptureRead()
+        with (
+            patch.object(dataset_router.workspace_read_client, "run_workspace_read", capture),
+            patch.object(
+                dataset_router.dataset_dependency_graph_service,
+                "build_reserving_class_dependency_graph",
+                return_value={"ok": True, "nodes": [], "edges": []},
+            ) as service,
+        ):
+            self.assertEqual(dataset_router.get_dataset_dependency_graph("Demo", "COL")["nodes"], [])
+        service.assert_called_once_with("Demo", "COL")
+        self.assertEqual(
+            capture.calls, [("dataset_dependency_graph", {"project_name": "Demo", "reserving_class": "COL"})]
+        )
+        self._assert_registered(capture)
+
     def test_dataset_cache_load_adopts_a_remote_handle(self) -> None:
         capture = _CaptureRead({"ok": True, "id": "arcrhotri_remote", "path": "\\\\srv\\Paid.csv"}, remote=True)
         request = DatasetCacheLoadRequest(project_name="Demo", reserving_class="COL", dataset_name="Paid")
