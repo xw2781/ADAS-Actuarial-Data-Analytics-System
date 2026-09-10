@@ -120,6 +120,45 @@ export function dependencyGraphReach(graph, key) {
 }
 
 /**
+ * The boxes the diagram leaves out until Show all is ticked: a dataset that
+ * nothing reads. A method output is always drawn, because the end of a chain
+ * - a Result Selection, or a DFM nobody has picked yet - is what the diagram
+ * is for; a name missing from the index is drawn too, so the dangling edge to
+ * it stays visible.
+ */
+export function dependencyGraphHiddenByDefault(graph) {
+  const hidden = new Set();
+  for (const node of graph.nodes) {
+    if (node.kind.family === "method" || node.kind.family === "missing") continue;
+    if (!node.dependents.length) hidden.add(node.key);
+  }
+  return hidden;
+}
+
+/**
+ * The graph without a set of nodes: every remaining node keeps only the
+ * precedents and dependents that are still drawn, and every edge touching a
+ * removed node goes with it.
+ */
+export function pruneDependencyGraph(graph, hiddenKeys) {
+  if (!hiddenKeys?.size) return graph;
+  const byKey = new Map();
+  const nodes = [];
+  for (const node of graph.nodes) {
+    if (hiddenKeys.has(node.key)) continue;
+    const copy = {
+      ...node,
+      precedents: node.precedents.filter((key) => !hiddenKeys.has(key)),
+      dependents: node.dependents.filter((key) => !hiddenKeys.has(key)),
+    };
+    byKey.set(copy.key, copy);
+    nodes.push(copy);
+  }
+  const edges = graph.edges.filter((edge) => !hiddenKeys.has(edge.source) && !hiddenKeys.has(edge.target));
+  return { nodes, edges, byKey };
+}
+
+/**
  * Marks the edges that close a cycle, walking from every node in input order.
  *
  * A saved class has no cycles, but a half-written link can make one, and a

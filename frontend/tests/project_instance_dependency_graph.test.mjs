@@ -8,9 +8,11 @@ const tooltipStubUrl = stubUrl("export function attachArcrhoTooltip() {}");
 const layoutUrl = new URL("../ui/project_instance/dependency_graph_layout.js", import.meta.url).href;
 const {
   buildDependencyGraph,
+  dependencyGraphHiddenByDefault,
   dependencyGraphReach,
   dependencyNodeKind,
   layoutDependencyGraph,
+  pruneDependencyGraph,
 } = await import(layoutUrl);
 
 // The page module reads the DOM and starts a load as soon as it is imported;
@@ -26,7 +28,13 @@ const windowModule = await import(stubUrl(
     .replace(/^import "\/ui\/shared\/integrations\/zoom_bridge\.js[^"]*";$/m, "")
     .replace(/^const params = new URLSearchParams[\s\S]*$/m, ""),
 ));
-const { dependencyGraphOpenRequest, dependencyGraphSummary, dependencyGraphNodeTooltip } = windowModule;
+const {
+  dependencyGraphOpenRequest,
+  dependencyGraphPortList,
+  dependencyGraphScrollTo,
+  dependencyGraphSummary,
+  dependencyGraphViewport,
+} = windowModule;
 
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
 
@@ -157,18 +165,79 @@ test("a click opens a method output as its method and a dataset as a dataset, ne
   assert.equal(dependencyGraphOpenRequest(graph.byKey.get("gone vector"), identity), null);
 });
 
-test("the status line and the hover text read the graph in plain words", () => {
+test("the status line reads the graph in plain words, hidden datasets included", () => {
   assert.equal(dependencyGraphSummary({ nodeCount: 7, edgeCount: 6, reviewCount: 1 }), "7 objects, 6 links. 1 needs review.");
   assert.equal(dependencyGraphSummary({ nodeCount: 1, edgeCount: 0, reviewCount: 0 }), "1 object, 0 links.");
+  assert.equal(dependencyGraphSummary({ nodeCount: 5, edgeCount: 4, reviewCount: 0, hiddenCount: 2 }), "5 objects, 4 links. 2 datasets hidden.");
+  assert.equal(dependencyGraphSummary({ nodeCount: 0, hiddenCount: 1 }), "1 dataset hidden.");
   assert.equal(dependencyGraphSummary({ nodeCount: 0 }), "");
+});
+
+test("a dataset nothing depends on is hidden by default; methods and missing names stay", () => {
+  const graph = buildDependencyGraph({
+    ...PAYLOAD,
+    nodes: [
+      ...PAYLOAD.nodes,
+      { name: "Orphan Vector", dataset_type: "Orphan Vector", source_kind: "calculated", method_type: "None", status: 0 },
+      { name: "Idle Engine Table", dataset_type: "Idle Engine Table", source_kind: "engine", method_type: "None", status: 0 },
+      { name: "Unused DFM", dataset_type: "Unused Ultimate", source_kind: "dfm", method_type: "DFM", status: 0 },
+    ],
+  });
+  const hidden = dependencyGraphHiddenByDefault(graph);
+  assert.deepEqual([...hidden].sort(), ["idle engine table", "orphan vector"]);
+
+  const pruned = pruneDependencyGraph(graph, hidden);
+  assert.deepEqual(pruned.nodes.map((node) => node.name), [
+    "Paid", "Incurred", "Paid Vector", "Paid DFM", "Incurred DFM", "Selected Ultimate", "Gone Vector", "Unused DFM",
+  ]);
+  assert.equal(pruned.edges.length, graph.edges.length, "no edge touched a hidden dataset");
+  assert.equal(pruneDependencyGraph(graph, new Set()), graph, "nothing hidden is the same graph");
+
+  // Hiding a dataset also drops it from the lists of what remains.
+  const withEdge = buildDependencyGraph({
+    nodes: [
+      { name: "Paid", source_kind: "input", method_type: "None" },
+      { name: "Paid Copy", source_kind: "calculated", method_type: "None" },
+      { name: "Paid DFM", source_kind: "dfm", method_type: "DFM" },
+    ],
+    edges: [{ source: "Paid", target: "Paid Copy" }, { source: "Paid", target: "Paid DFM" }],
+  });
+  const trimmed = pruneDependencyGraph(withEdge, dependencyGraphHiddenByDefault(withEdge));
+  assert.deepEqual(trimmed.byKey.get("paid").dependents, ["paid dfm"]);
+  assert.deepEqual(trimmed.edges, [{ source: "paid", target: "paid dfm" }]);
+  assert.ok(!withEdge.byKey.get("paid").dependents.includes(undefined), "the full graph is left untouched");
+  assert.deepEqual(withEdge.byKey.get("paid").dependents, ["paid copy", "paid dfm"]);
+});
+
+test("each port lists the direct precedents or dependents with the label their box shows", () => {
   const graph = buildDependencyGraph(PAYLOAD);
-  assert.equal(
-    dependencyGraphNodeTooltip(graph.byKey.get("paid dfm"), graph),
-    "Paid DFM · Dataset Type: Paid Ultimate · DFM · Needs review · Precedents: Paid Vector · Dependents: Selected Ultimate",
-  );
-  assert.equal(
-    dependencyGraphNodeTooltip(graph.byKey.get("paid vector"), graph),
-    "Paid Vector · Calculated · Formula: Paid / 2 · Precedents: Paid · Dependents: Paid DFM",
+  assert.deepEqual(dependencyGraphPortList(graph.byKey.get("selected ultimate"), graph, "in"), {
+    title: "Precedents (2)",
+    empty: "",
+    entries: [
+      { key: "paid dfm", name: "Paid DFM", label: "DFM", family: "method" },
+      { key: "incurred dfm", name: "Incurred DFM", label: "DFM", family: "method" },
+    ],
+  });
+  assert.deepEqual(dependencyGraphPortList(graph.byKey.get("incurred dfm"), graph, "in").entries.map((e) => e.name), ["Incurred", "Gone Vector"]);
+  assert.deepEqual(dependencyGraphPortList(graph.byKey.get("selected ultimate"), graph, "out"), {
+    title: "Dependents",
+    empty: "No dependents",
+    entries: [],
+  });
+  assert.deepEqual(dependencyGraphPortList(graph.byKey.get("paid"), graph, "out").entries.map((e) => e.family), ["calculated"]);
+});
+
+test("the scroll surface centres a small graph and scrolls a large one to the point asked for", () => {
+  const layout = { width: 400, height: 200 };
+  const small = dependencyGraphViewport(layout, { width: 800, height: 600 }, 1, 16);
+  assert.deepEqual(small, { width: 800, height: 600, offsetX: 200, offsetY: 200 });
+  const large = dependencyGraphViewport(layout, { width: 300, height: 100 }, 2, 16);
+  assert.deepEqual(large, { width: 832, height: 432, offsetX: 16, offsetY: 16 });
+  // A node centred at graph (100, 50) lands in the middle of the 300x100 canvas.
+  assert.deepEqual(
+    dependencyGraphScrollTo(large, 2, { x: 100, y: 50 }, { x: 150, y: 50 }),
+    { scrollLeft: 66, scrollTop: 66 },
   );
 });
 
@@ -214,12 +283,30 @@ test("the graph page and its read are registered end to end", async () => {
   const pageHtml = await read("../ui/project_instance/dependency_graph_window.html");
   assert.match(pageHtml, /dependency_graph_window\.css\?v=\d{8}[a-z]/);
   assert.match(pageHtml, /dependency_graph_window\.js\?v=\d{8}[a-z]/);
-  for (const id of ["dependencyGraphSearch", "dependencyGraphZoomOut", "dependencyGraphZoomIn", "dependencyGraphFit", "dependencyGraphRefresh", "dependencyGraphSvg", "dependencyGraphState", "dependencyGraphStatus"]) {
+  for (const id of ["dependencyGraphSearch", "dependencyGraphShowAll", "dependencyGraphZoomOut", "dependencyGraphZoomIn", "dependencyGraphFit", "dependencyGraphRefresh", "dependencyGraphCanvas", "dependencyGraphSvg", "dependencyGraphState", "dependencyGraphStatus"]) {
     assert.ok(pageHtml.includes(`id="${id}"`), id);
   }
   assert.match(rawWindowSource, /const GRAPH_ENDPOINT = "\/datasets\/dependency-graph";/);
   // The drag handle captures the pointer (arcrho-ui-design L16).
   assert.match(rawWindowSource, /svg\.setPointerCapture\(event\.pointerId\);/);
+
+  // The canvas is a framed ArcRho scroll surface and its scrollbars are the pan.
+  assert.match(pageHtml, /\/ui\/shared\/styles\/framed_scrollbars\.css\?v=\d{8}[a-z]/);
+  assert.match(pageHtml, /class="pi-dependency-graph-canvas ar-framed-scroll" id="dependencyGraphCanvas"/);
+  assert.match(rawWindowSource, /scrollCanvasTo\(drag\.scrollLeft - dx, drag\.scrollTop - dy\);/);
+  assert.match(rawWindowSource, /canvas\.classList\.add\("isScrolling"\);/);
+
+  // Single click selects and pins the chain, double click opens, and a box
+  // carries two ports instead of a tooltip.
+  assert.match(rawWindowSource, /box\.addEventListener\("click", \(\) => setSelection\(node\.key\)\);/);
+  assert.match(rawWindowSource, /box\.addEventListener\("dblclick", \(event\) => \{\n\s+event\.preventDefault\(\);\n\s+openNode\(node\);/);
+  assert.doesNotMatch(rawWindowSource, /attachArcrhoTooltip\(box/);
+  assert.match(rawWindowSource, /wrap\.appendChild\(buildPortElement\(node, "in"\)\);\n\s+wrap\.appendChild\(buildPortElement\(node, "out"\)\);/);
+  const css = await read("../ui/project_instance/dependency_graph_window.css");
+  for (const selector of [".dg-port.is-in", ".dg-port.is-out", ".dg-port-popover", ".dg-port-popover-row", ".dg-node.is-upstream", ".dg-node.is-downstream", ".dg-node.is-target"]) {
+    assert.ok(css.includes(selector), selector);
+  }
+  assert.match(pageHtml, /Click a box to light its chain, double-click to open it\./);
 
   const router = await read("../app_server/api/dataset_router.py");
   assert.match(router, /@router\.get\("\/datasets\/dependency-graph"\)/);

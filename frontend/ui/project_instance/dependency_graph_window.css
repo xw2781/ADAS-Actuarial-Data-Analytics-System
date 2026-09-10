@@ -6,9 +6,12 @@
    project_instance_windows.js. Every colour reads a shared --ar-color-* token,
    so the Dark and High Contrast themes need no companion rule.
 
-   The diagram is one SVG: edges are paths, nodes are foreignObject boxes so
-   their text ellipsizes and their colours come from this sheet rather than
-   from attributes written at render time. */
+   The diagram is one SVG sized to the zoomed graph inside a framed ArcRho
+   scroll surface (shared/styles/framed_scrollbars.css), so the canvas's own
+   scrollbars pan it. Edges are paths; nodes are foreignObject boxes so their
+   text ellipsizes and their colours come from this sheet rather than from
+   attributes written at render time. Each box carries two ports on its edges
+   that reveal on hover and open a list of its precedents or dependents. */
 
 .pi-dependency-graph-page {
   height: 100vh;
@@ -30,8 +33,9 @@
   overflow: hidden;
 }
 
-/* One compact command row: a search box, the interaction cue, the family
-   legend, and the four icon buttons the diagram is steered with. */
+/* One compact command row: a search box, the Show all switch, the
+   interaction cue, the family legend, and the four icon buttons the diagram
+   is steered with. */
 .pi-dependency-graph-toolbar {
   min-height: 28px;
   flex: 0 0 auto;
@@ -42,7 +46,7 @@
 }
 
 .pi-dependency-graph-search {
-  width: 220px;
+  width: 180px;
   height: 28px;
   flex: 0 0 auto;
   box-sizing: border-box;
@@ -59,6 +63,28 @@
   border-color: var(--ar-color-border-focus);
   box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.16);
 }
+
+.pi-dependency-graph-check {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ar-color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pi-dependency-graph-check input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--ar-color-accent);
+  cursor: pointer;
+}
+
+.pi-dependency-graph-check:hover { color: var(--ar-color-text-strong); }
+.pi-dependency-graph-check input:disabled { cursor: default; }
+.pi-dependency-graph-check input:disabled + span { opacity: 0.55; }
 
 .pi-dependency-graph-cue {
   flex: 1 1 auto;
@@ -149,21 +175,22 @@
   mask-image: url("../shared/icons/library/refresh.svg?v=20260908a");
 }
 
-/* The canvas takes whatever height the resized frame leaves; the diagram pans
-   and zooms inside it rather than scrolling the page. */
+/* The canvas takes whatever height the resized frame leaves and scrolls the
+   zoomed diagram inside its own framed scrollbars. */
 .pi-dependency-graph-canvas {
   flex: 1 1 auto;
   min-height: 120px;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid var(--ar-color-border);
   background: var(--ar-color-surface);
 }
 
+/* The SVG takes its size from the width and height attributes the page
+   writes, never smaller than the canvas, so a small graph sits centred and a
+   large one scrolls. */
 .pi-dependency-graph-svg {
   display: block;
-  width: 100%;
-  height: 100%;
   cursor: grab;
   touch-action: none;
 }
@@ -219,6 +246,19 @@
 
 /* ---- Nodes ------------------------------------------------------------- */
 
+/* The holder overhangs the box on both sides by --dg-port-overhang so the
+   ports can straddle the edge an arrow attaches to. */
+.dg-node-holder { overflow: visible; }
+
+.dg-node-wrap {
+  --dg-port-overhang: 7px;
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--dg-port-overhang);
+}
+
 .dg-node {
   --dg-node-accent: var(--dg-family-dataset);
   box-sizing: border-box;
@@ -236,6 +276,7 @@
   color: var(--ar-color-text);
   overflow: hidden;
   cursor: pointer;
+  user-select: none;
   transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
 }
 
@@ -246,14 +287,29 @@
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
 }
 
+/* The selected box and its chain: inputs in blue, dependents in green. */
 .dg-node.is-focus {
   border-color: var(--ar-color-accent);
   border-left-color: var(--dg-node-accent);
-  box-shadow: 0 0 0 2px rgba(43, 109, 246, 0.18);
+  box-shadow: 0 0 0 2px rgba(43, 109, 246, 0.22);
 }
+
+.dg-node.is-upstream { border-color: var(--ar-color-accent); border-left-color: var(--dg-node-accent); }
+.dg-node.is-downstream { border-color: var(--ar-color-success); border-left-color: var(--dg-node-accent); }
 
 .dg-node.is-match { border-color: var(--ar-color-accent); border-left-color: var(--dg-node-accent); }
 .dg-node.is-dim { opacity: 0.28; }
+
+/* A box the popover just scrolled to announces itself for a moment. */
+.dg-node.is-target {
+  opacity: 1;
+  animation: dg-target-flash 800ms ease-out 2;
+}
+
+@keyframes dg-target-flash {
+  0% { box-shadow: 0 0 0 0 rgba(43, 109, 246, 0.55); }
+  100% { box-shadow: 0 0 0 8px rgba(43, 109, 246, 0); }
+}
 
 .dg-node-name {
   font-size: 12px;
@@ -290,7 +346,131 @@
   background: var(--ar-color-warning);
 }
 
-/* One accent per family, shared by the node stripe and the legend swatch. */
+/* ---- Ports ------------------------------------------------------------- */
+
+/* A port sits centred on the box edge its arrows attach to: precedents on
+   the left, dependents on the right. It shows while the box is hovered and
+   stays while its list is open. */
+.dg-port {
+  --dg-port-accent: var(--ar-color-accent);
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--dg-port-accent);
+  border-radius: 50%;
+  background: var(--ar-color-surface-raised);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%);
+  transition: opacity 120ms ease, background-color 120ms ease, transform 120ms ease;
+}
+
+.dg-port.is-in { left: calc(var(--dg-port-overhang) - 6px); }
+.dg-port.is-out { --dg-port-accent: var(--ar-color-success); right: calc(var(--dg-port-overhang) - 6px); }
+
+.dg-node-wrap:hover .dg-port,
+.dg-node-wrap:focus-within .dg-port,
+.dg-port.is-open { opacity: 1; }
+
+.dg-port:hover, .dg-port.is-open {
+  background: var(--dg-port-accent);
+  transform: translateY(-50%) scale(1.15);
+}
+
+.dg-port.is-empty { border-style: dashed; border-color: var(--ar-color-border-strong); }
+.dg-port.is-empty:hover, .dg-port.is-empty.is-open { background: var(--ar-color-surface-hover); }
+
+/* The precedent or dependent list one port opens. It lives on the body, out
+   of the scroll surface, and scrolls vertically only with a compact lane. */
+.dg-port-popover {
+  --ar-framed-scroll-track: var(--ar-color-surface-raised);
+  position: fixed;
+  z-index: 60;
+  width: 240px;
+  max-height: 260px;
+  box-sizing: border-box;
+  padding: 6px 0;
+  border: 1px solid var(--ar-color-border-strong);
+  border-radius: 4px;
+  background: var(--ar-color-surface-raised);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  color: var(--ar-color-text);
+  overflow-x: hidden;
+  overflow-y: auto;
+  user-select: none;
+}
+
+.dg-port-popover[hidden] { display: none; }
+
+.dg-port-popover::-webkit-scrollbar { width: 12px; }
+.dg-port-popover::-webkit-scrollbar-thumb { min-height: 24px; border-width: 2px; }
+.dg-port-popover::-webkit-scrollbar-button { width: 12px; height: 12px; background-size: 10px 10px; }
+
+.dg-port-popover-title {
+  padding: 2px 10px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ar-color-text-muted);
+  white-space: nowrap;
+}
+
+.dg-port-popover[data-side="in"] .dg-port-popover-title { color: var(--ar-color-accent); }
+.dg-port-popover[data-side="out"] .dg-port-popover-title { color: var(--ar-color-success); }
+
+.dg-port-popover-empty {
+  padding: 4px 10px 2px;
+  color: var(--ar-color-text-muted);
+  font-style: italic;
+}
+
+.dg-port-popover-list { display: flex; flex-direction: column; }
+
+.dg-port-popover-row {
+  --dg-node-accent: var(--dg-family-dataset);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  min-height: 26px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 4px 10px 4px 9px;
+  border: 0;
+  border-left: 3px solid var(--dg-node-accent);
+  background: transparent;
+  color: var(--ar-color-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dg-port-popover-row:hover, .dg-port-popover-row:focus-visible {
+  outline: none;
+  background: var(--ar-color-surface-hover);
+}
+
+.dg-port-popover-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ar-color-text-strong);
+}
+
+.dg-port-popover-kind {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--ar-color-text-muted);
+  white-space: nowrap;
+}
+
+/* One accent per family, shared by the node stripe, the popover rows, and
+   the legend swatch. */
 .pi-dependency-graph-page {
   --dg-family-dataset: #94a3b8;
   --dg-family-calculated: #0f766e;
@@ -299,8 +479,9 @@
   --dg-family-missing: var(--ar-color-danger);
 }
 
-.dg-node[data-family="calculated"], .pi-dependency-graph-legend [data-family="calculated"] { --dg-node-accent: var(--dg-family-calculated); --dg-family-accent: var(--dg-family-calculated); }
-.dg-node[data-family="engine"], .pi-dependency-graph-legend [data-family="engine"] { --dg-node-accent: var(--dg-family-engine); --dg-family-accent: var(--dg-family-engine); }
-.dg-node[data-family="method"], .pi-dependency-graph-legend [data-family="method"] { --dg-node-accent: var(--dg-family-method); --dg-family-accent: var(--dg-family-method); }
-.dg-node[data-family="dataset"], .pi-dependency-graph-legend [data-family="dataset"] { --dg-node-accent: var(--dg-family-dataset); --dg-family-accent: var(--dg-family-dataset); }
-.dg-node[data-family="missing"] { --dg-node-accent: var(--dg-family-missing); border-style: dashed; border-left-style: solid; cursor: default; }
+.dg-node[data-family="calculated"], .dg-port-popover-row[data-family="calculated"], .pi-dependency-graph-legend [data-family="calculated"] { --dg-node-accent: var(--dg-family-calculated); --dg-family-accent: var(--dg-family-calculated); }
+.dg-node[data-family="engine"], .dg-port-popover-row[data-family="engine"], .pi-dependency-graph-legend [data-family="engine"] { --dg-node-accent: var(--dg-family-engine); --dg-family-accent: var(--dg-family-engine); }
+.dg-node[data-family="method"], .dg-port-popover-row[data-family="method"], .pi-dependency-graph-legend [data-family="method"] { --dg-node-accent: var(--dg-family-method); --dg-family-accent: var(--dg-family-method); }
+.dg-node[data-family="dataset"], .dg-port-popover-row[data-family="dataset"], .pi-dependency-graph-legend [data-family="dataset"] { --dg-node-accent: var(--dg-family-dataset); --dg-family-accent: var(--dg-family-dataset); }
+.dg-node[data-family="missing"], .dg-port-popover-row[data-family="missing"] { --dg-node-accent: var(--dg-family-missing); }
+.dg-node[data-family="missing"] { border-style: dashed; border-left-style: solid; }
